@@ -2,7 +2,7 @@ import { FC } from "react";
 import { Page } from "@/components/Page.tsx";
 import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
 import UserInfo from "@/components/UserInfo/UserInfo.tsx";
-
+import { testApi } from "../../../services/api";
 export interface TGUser {
   photo: string;
   name: string;
@@ -23,6 +23,7 @@ export const MainPage: FC = () => {
           )}
         </div>
         React app
+        <button onClick={() => testApi()}>Test</button>
       </div>
     </Page>
   );
