@@ -1,14 +1,14 @@
 CREATE TABLE IF NOT EXISTS users (
                                      id BIGINT PRIMARY KEY,
                                      name TEXT DEFAULT '',
-                                     balance INTEGER DEFAULT 0,
+                                     balance BIGINT DEFAULT 0,
                                      wallet VARCHAR DEFAULT NULL
 );
 
 CREATE TABLE rooms (
                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                        created_at TIMESTAMP DEFAULT now(),
-                       bet BIGINT NOT NULL
+                       betAmount BIGINT NOT NULL
 );
 
 CREATE TABLE room_users (

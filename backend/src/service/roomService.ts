@@ -1,14 +1,16 @@
 import db from '../config/db';
 import { Room } from '../model/room';
+import {PoolClient} from "pg";
 
 export class RoomService {
-    static async createRoomWithUser(userId: number): Promise<Room> {
+    static async createRoomWithUser(userId: bigint, betAmount: bigint): Promise<Room> {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
 
             const result = await client.query(
-                `INSERT INTO rooms DEFAULT VALUES RETURNING id`
+                `INSERT INTO rooms (user_id, betAmount) VALUES ($1, $2) RETURNING id`,
+                [userId, betAmount]
             );
             const room = Room.fromRow(result.rows[0]);
 
@@ -38,7 +40,7 @@ export class RoomService {
         return result.rows.map(Room.fromRow);
     }
 
-    static async joinRoom(roomId: number, userId: number): Promise<void> {
+    static async joinRoom(roomId: number, userId: bigint): Promise<void> {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
@@ -66,28 +68,12 @@ export class RoomService {
         }
     }
 
-    static async deleteRoom(roomId: number): Promise<void> {
-        const client = await db.connect();
+    static async deleteRoom(client: PoolClient, roomId: number): Promise<void> {
         try {
-            await client.query('BEGIN');
-
-            const check = await client.query(
-                `SELECT id FROM rooms WHERE id = $1`,
-                [roomId]
-            );
-            if (check.rowCount === 0) {
-                throw new Error('Room not found');
-            }
-
             await client.query(`DELETE FROM room_users WHERE room_id = $1`, [roomId]);
             await client.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
-
-            await client.query('COMMIT');
         } catch (err) {
-            await client.query('ROLLBACK');
             throw err;
-        } finally {
-            client.release();
         }
     }
 }

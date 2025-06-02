@@ -4,9 +4,10 @@ import {RoomService} from "../service/roomService";
 export class RoomController {
     static async createRoom(req: Request, res: Response) {
         const userId = res.locals.initData?.user?.id;
-        
+        const { betAmount } = req.body;
+
         try {
-            const room = await RoomService.createRoomWithUser(userId);
+            const room = await RoomService.createRoomWithUser(BigInt(userId), BigInt(betAmount));
             res.status(201).json({ roomId: room.id });
         } catch (error) {
             console.error(error);
@@ -33,29 +34,12 @@ export class RoomController {
         }
 
         try {
-            await RoomService.joinRoom(roomId, userId);
+            await RoomService.joinRoom(roomId, BigInt(userId));
             res.json({ message: 'Joined room', roomId });
         } catch (error: any) {
             console.error(error);
             const status = error.message === 'Room is full' ? 400 : 500;
             res.status(status).json({ error: error.message || 'Could not join room' });
-        }
-    }
-
-    static async deleteRoom(req: Request, res: Response) {
-        const roomId = parseInt(req.params.id, 10);
-
-        if (isNaN(roomId)) {
-            return res.status(400).json({ error: 'Invalid room ID' });
-        }
-
-        try {
-            await RoomService.deleteRoom(roomId);
-            res.json({ message: `Room ${roomId} deleted` });
-        } catch (error: any) {
-            console.error(error);
-            const status = error.message === 'Room not found' ? 404 : 500;
-            res.status(status).json({ error: error.message || 'Could not delete room' });
         }
     }
 }
