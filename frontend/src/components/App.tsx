@@ -1,12 +1,25 @@
-import { useLaunchParams, miniApp, useSignal } from "@telegram-apps/sdk-react";
+import {
+  useLaunchParams,
+  miniApp,
+  useSignal,
+  initData,
+} from "@telegram-apps/sdk-react";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Navigate, Route, Routes, HashRouter } from "react-router-dom";
 
 import { routes } from "@/navigation/routes.tsx";
+import { MainLayout } from "@/layouts/MainLayout";
+import { useEffect } from "react";
+import { authorize } from "../../services/users.api";
 
 export function App() {
   const lp = useLaunchParams();
   const isDark = useSignal(miniApp.isDark);
+  const initDataRaw = useSignal(initData.raw);
+
+  useEffect(() => {
+    authorize(initDataRaw);
+  }, [initDataRaw]);
 
   return (
     <>
@@ -16,9 +29,11 @@ export function App() {
       >
         <HashRouter>
           <Routes>
-            {routes.map((route) => (
-              <Route key={route.path} {...route} />
-            ))}
+            <Route path="/" element={<MainLayout />}>
+              {routes.map((route) => (
+                <Route key={route.path} {...route} />
+              ))}
+            </Route>
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </HashRouter>

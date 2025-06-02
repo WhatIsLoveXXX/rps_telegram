@@ -1,8 +1,7 @@
 @import "tailwindcss";
 
 body {
-  /* background: var(--tg-theme-secondary-bg-color, white); */
-  background: #17212b;
+  background: #141414;
   padding: 0;
   margin: 0;
 }
@@ -10,4 +9,17 @@ body {
 body,
 html {
   box-sizing: border-box;
+  overscroll-behavior: none;
+  font-family: "Open Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.bottom-navigation-gradient {
+  background: linear-gradient(
+    136.77deg,
+    #021b8c 6.32%,
+    #01052d 49.86%,
+    #021b8c 93.4%
+  );
 }
