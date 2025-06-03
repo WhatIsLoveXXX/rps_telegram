@@ -16,5 +16,5 @@ export const routes: Route[] = [
   { path: "/", Component: MainPage },
   { path: "/leaderboard", Component: LeaderBoard },
   { path: "/user-profile", Component: UserProfile },
-  { path: "/battle/:id", Component: BattlePage },
+  { path: "/battle/:roomId", Component: BattlePage },
 ];

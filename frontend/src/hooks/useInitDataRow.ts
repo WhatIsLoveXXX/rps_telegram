@@ -1,5 +1,4 @@
-import { useSignal } from "@telegram-apps/sdk-react";
-import { initData } from "@telegram-apps/sdk";
+import { useSignal, initData } from "@telegram-apps/sdk-react";
 
 export const useInitDataRow = () => {
   const initDataRaw = useSignal(initData.raw);

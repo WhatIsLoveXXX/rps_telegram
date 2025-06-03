@@ -1,17 +1,12 @@
+import { useTelegramUser } from "@/hooks/useTelegramUser";
+import { useLaunchParams } from "@telegram-apps/sdk-react";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 export const BattlePage = () => {
-  const { id } = useParams();
+  const { roomId } = useParams<{ roomId: string }>();
+  const user = useTelegramUser();
+  console.log(user);
 
-  useEffect(() => {
-    const socket = new WebSocket("ws://localhost:3000/battle");
-
-    socket.onopen = () => {
-      console.log("Connected to server");
-      socket.send(JSON.stringify({ id }));
-    };
-  }, []);
-
-  return <div>BattlePage {id}</div>;
+  return <div>BattlePage {roomId}</div>;
 };

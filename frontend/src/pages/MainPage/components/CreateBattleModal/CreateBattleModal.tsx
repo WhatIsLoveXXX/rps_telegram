@@ -21,10 +21,10 @@ export const CreateBattleModal: FC<CreateBattleModalProps> = ({
 
   const handleCreateBattle = async () => {
     try {
-      // const response = await createRoom(initDataRaw, Number(sumTON));
-      // console.log(response);
+      const response = await createRoom(initDataRaw, Number(sumTON));
+      console.log(response);
       // navigate(`/battle/${response.id}`);
-      navigate(`/battle/${"some id"}`);
+      // navigate(`/battle/${"some id"}`);
     } catch (error) {
       console.error(error);
     }
