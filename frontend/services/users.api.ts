@@ -9,6 +9,7 @@ export const authorize = async (initDataRaw?: string) => {
     });
     return response.data;
   } catch (error) {
+    console.log("error", error);
     throw new Error(`Error authorizing`);
   }
 };
