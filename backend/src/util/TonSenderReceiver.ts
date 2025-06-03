@@ -1,6 +1,3 @@
-// В случае ошибки допустим выхода из таймаута и не сохранение транзакции локально, то потом тогда 
-// пытаться делать ретрай, проверять какое-то поле, можно генерить айдишку в комменте допустим
-
 import { mnemonicToWalletKey } from "ton-crypto";
 import {Address, Cell, Transaction,comment,
     internal, OpenedContract,
@@ -27,7 +24,7 @@ async function waitForSeqnoChange(
     timeout = 180_000,
     interval = 3_000
 ): Promise<void> {
-    console.log("⏳ Ожидаем подтверждение транзакции...");
+    console.log("⏳ Waiting for transaction confirmation...");
 
     const start = Date.now();
 
@@ -39,10 +36,10 @@ async function waitForSeqnoChange(
         }
 
         const currentSeqno = await contract.getSeqno();
-        console.log(`🔁 seqno = ${currentSeqno} | ожидаем > ${oldSeqno} (${Math.floor(elapsed / 1000)}s)`);
+        console.log(`🔁 seqno = ${currentSeqno} | waiting > ${oldSeqno} (${Math.floor(elapsed / 1000)}s)`);
 
         if (currentSeqno > oldSeqno) {
-            console.log("✅ Транзакция подтверждена");
+            console.log("✅ Transaction confirmed");
             return;
         }
 
@@ -102,7 +99,7 @@ export async function sendTon(wallet_address: string, amount: number) {
     const [seqNo, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
 
     if (balance < amountNano) {
-        throw new Error("❌ Недостаточно средств для перевода.");
+        throw new Error("❌ Not enough funds to transfer.");
     }
 
     const transfer = contract.createTransfer({
@@ -118,11 +115,11 @@ export async function sendTon(wallet_address: string, amount: number) {
 
     await contract.send(transfer);
 
-    console.log("📤 Транзакция отправлена. Ожидаем подтверждения...");
+    console.log("📤 Transaction sent. Waiting for confirmation...");
     
     await waitForSeqnoChange(contract, seqNo);
 
-    console.log("✅ Транзакция подтверждена. Получаем детали...");
+    console.log("✅ Transaction confirmed. Receiving details...");
 
     return await getTransactionByMessageHash(client, contract.address, messageHash);
 }
@@ -143,7 +140,7 @@ export async function findTransactionByHashWithWait(
         const elapsed = Date.now() - start;
 
         if (elapsed > timeout) {
-            console.warn("⏰ Таймаут ожидания транзакции");
+            console.warn("⏰ Transaction waiting timeout");
             return null;
         }
 
@@ -153,15 +150,15 @@ export async function findTransactionByHashWithWait(
             for (const tx of txs) {
                 const currentHash = tx.hash().toString("hex");
                 if (currentHash === hashToFind) {
-                    console.log("✅ Транзакция найдена");
+                    console.log("✅ Transaction found");
                     return tx;
                 }
             }
         } catch (err) {
-            console.error("❌ Ошибка при проверке транзакции:", err);
+            console.error("❌ Error verifying transaction:", err);
         }
 
-        console.log(`⏳ Ожидаем транзакцию... (${Math.floor(elapsed / 1000)}s)`);
+        console.log(`⏳ Waiting for transaction... (${Math.floor(elapsed / 1000)}s)`);
         await sleep(interval);
     }
 }

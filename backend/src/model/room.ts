@@ -1,4 +1,4 @@
-export class Room {
+export class Battle {
     id: string;
     bet: number;
     createdAt: string;
@@ -9,7 +9,7 @@ export class Room {
         this.createdAt = createdAt;
     }
 
-    static fromRow(row: any): Room {
-        return new Room(row.id, row.bet, row.createdAt);
+    static fromRow(row: any): Battle {
+        return new Battle(row.id, row.bet, row.createdAt);
     }
 }

@@ -49,7 +49,7 @@ export class UserService {
                 return null;
             }
 
-            const { wallet_address } = userResult.rows[0]; // customer wallet
+            const { wallet_address } = userResult.rows[0];
             
             const transaction = await findTransactionByHashWithWait(wallet_address, boc);
             if (transaction == null) {
@@ -58,7 +58,7 @@ export class UserService {
                     [userId, boc, amount]
                 );
                 await client.query('ROLLBACK');
-                throw new Error("Транзакция не нашлась")
+                throw new Error("Transaction not found")
             }
             const txHash = transaction.hash().toString("hex");
             
@@ -67,7 +67,6 @@ export class UserService {
                 [amount, userId]
             );
             
-            // Логируем транзакцию
             await TransactionService.createTransaction(client, userId, amount, TransactionEnum.DEPOSIT, txHash);
             
             await client.query('COMMIT');
@@ -101,17 +100,14 @@ export class UserService {
                 return 'Insufficient balance';
             }
 
-            // Отправка TON — ВАЖНО: до COMMIT
             const transaction = await sendTon(wallet_address, amount);
             const txHash = Buffer.from(transaction.hash()).toString('hex');
             
-            // Обновляем баланс
             const result = await client.query(
                 'UPDATE users SET balance = balance - $1 WHERE id = $2 RETURNING *',
                 [amount, userId]
             );
 
-            // Логируем транзакцию
             await TransactionService.createTransaction(client, userId, amount, TransactionEnum.WITHDRAWAL, txHash);
 
             await client.query('COMMIT');

@@ -9,7 +9,6 @@ dotenv.config();
 
 class DepositRetryService {
     static start() {
-        // Запуск каждые 30 минут
     cron.schedule('*/30 * * * *', async () => {
             console.log('[CRON] Running deposit retry...');
             await DepositRetryService.processPendingDeposits();

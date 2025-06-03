@@ -1,6 +1,6 @@
 import { GameResult } from "../model/gameResult";
 import db from "../config/db";
-import {RoomService} from "./roomService";
+import {BattleService} from "./roomService";
 import {BalanceService} from "./balanceService";
 
 export class GameService {
@@ -53,7 +53,7 @@ export class GameService {
                     );
                 }
                 
-                await RoomService.deleteRoom(client, roomId)
+                await BattleService.deleteBattle(client, roomId)
 
                 await client.query('COMMIT');
                 return;
@@ -71,4 +71,6 @@ export class GameService {
             }
         }
     }
+    
+    
 }
