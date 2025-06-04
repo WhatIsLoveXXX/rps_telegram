@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 
-const socket: Socket = io("http://localhost:3000",{
+const socket: Socket = io("https://abe4-5-58-147-116.ngrok-free.app",{
   extraHeaders: {
     "ngrok-skip-browser-warning": "69420"
   }
