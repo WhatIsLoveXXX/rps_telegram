@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 
-const socket: Socket = io("https://3ad0-93-171-242-216.ngrok-free.app", {
-  rejectUnauthorized: false, // WARN: please do not do this in production
-  autoConnect: false,
+const socket: Socket = io("http://localhost:3000",{
+  extraHeaders: {
+    "ngrok-skip-browser-warning": "69420"
+  }
 });
 
 export const BattlePage = () => {
@@ -19,26 +20,14 @@ export const BattlePage = () => {
   // }, [roomId]);
 
   function test() {
-    socket.connect();
+    socket.emit('join_battle', {roomId, user});
     console.log("click");
   }
 
   useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-    }
-
-    function onFooEvent(value: any) {
-      setFooEvents((previous: any) => [...previous, value] as any);
-    }
-    // socket.on("connect", () => {
-    //   console.log("Connected to socket:", socket.id);
-    // });
-    socket.on("connect", onConnect);
+    socket.on("connect", () => {
+      console.log("Connected to socket:", socket.id);
+    });
 
     socket.on("connect_error", (err) => {
       console.error("Socket connect error:", err);
@@ -47,11 +36,6 @@ export const BattlePage = () => {
       console.log("ERROR");
       console.log(error);
     });
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("foo", onFooEvent);
-    };
   }, []);
 
   return (

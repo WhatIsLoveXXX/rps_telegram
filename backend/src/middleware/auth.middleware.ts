@@ -20,6 +20,8 @@ function getInitData(res: Response): InitData | undefined {
 
 export const authMiddleware: RequestHandler = (req, res, next) => {
     const [authType, authData = ''] = (req.header('authorization') || '').split(' ');
+    const header = (req.header('authorization') || '');
+    // console.log(header);
     
     switch (authType) {
         case 'tma':

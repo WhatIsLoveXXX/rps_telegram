@@ -26,6 +26,7 @@ export class UserController {
 
         try {
             const user = await UserService.createUser(userId, firstName);
+            console.log(user);
             return res.status(201).json({ message: 'User created from Telegram', user });
         } catch (err) {
             console.error('Failed to create user:', err);

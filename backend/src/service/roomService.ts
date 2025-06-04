@@ -1,26 +1,31 @@
 import db from '../config/db';
-import { Battle } from '../model/room';
+import { Room } from '../model/room';
 import {PoolClient} from "pg";
+import {UserService} from "./userService";
+import {Queryable} from "../config/types";
 
-export class BattleService {
-    static async createBattleWithUser(userId: number, betAmount: bigint): Promise<Battle> {
+export class RoomService {
+    static async createRoomWithUser(userId: number, betAmount: number): Promise<Room> {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
+            
+            const user = await UserService.getUserById(userId, client);
+            if (!user) {
+                throw new Error('User not found');
+            }
 
+            if (user.balance < betAmount) {
+                throw new Error('Insufficient balance');
+            }
+            
             const result = await client.query(
                 `INSERT INTO rooms (betAmount) VALUES ($1) RETURNING id`,
                 [betAmount]
             );
-            const battle = Battle.fromRow(result.rows[0]);
-
-            await client.query(
-                `INSERT INTO room_users (Battle_id, user_id) VALUES ($1, $2)`,
-                [battle.id, userId]
-            );
-
+            const room = Room.fromRow(result.rows[0]);
             await client.query('COMMIT');
-            return battle;
+            return room;
         } catch (err) {
             await client.query('ROLLBACK');
             throw err;
@@ -29,53 +34,69 @@ export class BattleService {
         }
     }
 
-    static async findOpenBattles(): Promise<Battle[]> {
+    static async findOpenRooms(): Promise<Room[]> {
         const result = await db.query(`
-            SELECT r.id FROM Battles r
-            JOIN Battle_users ru ON r.id = ru.Battle_id
+            SELECT r.id FROM rooms r
+            JOIN room_users ru ON r.id = ru.room_id
             GROUP BY r.id
             HAVING COUNT(ru.user_id) = 1
         `);
 
-        return result.rows.map(Battle.fromRow);
+        return result.rows.map(Room.fromRow);
     }
 
-    static async joinBattle(client: PoolClient, BattleId: number, userId: bigint): Promise<void> {
+    //Если чувак создал комнату, но что-то случилось с сокетом и он не присоединился,
+    // но комната то уже есть, шо делать?
+    static async joinRoom(roomId: number, userId: number, client: Queryable = db): Promise<void> {
         try {
             await client.query('BEGIN');
 
             const result = await client.query(
-                `SELECT COUNT(*) FROM Battle_users WHERE Battle_id = $1`,
-                [BattleId]
+                `SELECT COUNT(*) FROM room_users WHERE room_id = $1`,
+                [roomId]
             );
 
             if (parseInt(result.rows[0].count, 10) >= 2) {
-                throw new Error('Battle is full');
+                throw new Error('Room is full');
             }
 
             await client.query(
-                `INSERT INTO Battle_users (Battle_id, user_id) VALUES ($1, $2)`,
-                [BattleId, userId]
+                `INSERT INTO room_users (room_id, user_id) VALUES ($1, $2)`,
+                [roomId, userId]
             );
         } catch (err) {
             throw err;
         }
     }
 
-    static async deleteBattle(client: PoolClient, BattleId: number): Promise<void> {
+    static async getRoomById(id: number, client: Queryable = db): Promise<Room | null> {
+        const result = await client.query('SELECT * FROM rooms WHERE id = $1', [id]);
+        if (result.rows.length === 0) return null;
+        return Room.fromRow(result.rows[0]);
+    }
+
+    static async deleteRoom(client: PoolClient, roomId: number): Promise<void> {
         try {
-            await client.query(`DELETE FROM Battle_users WHERE Battle_id = $1`, [BattleId]);
-            await client.query(`DELETE FROM Battles WHERE id = $1`, [BattleId]);
+            await client.query(`DELETE FROM room_users WHERE room_id = $1`, [roomId]);
+            await client.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
         } catch (err) {
             throw err;
         }
     }
 
-    static async canUserJoin(client: PoolClient, BattleId: number): Promise<boolean> {
+    static async isUserInRoom(roomId: number, userId: number, client: Queryable = db): Promise<boolean> {
+        const result = await client.query(
+            `SELECT 1 FROM room_users WHERE room_id = $1 AND user_id = $2 LIMIT 1`,
+            [roomId, userId]
+        );
+        return (result.rowCount ?? 0) > 0;
+    }
+
+    static async canUserJoin(client: PoolClient, roomId: number): Promise<boolean> {
         try {
             const result = await client.query(
-                `SELECT COUNT(*) < 2 AS can_join FROM BattleUsers WHERE BattleId = $1`,
-                [BattleId]
+                `SELECT COUNT(*) < 2 AS can_join FROM room_users WHERE room_id = $1`,
+                [roomId]
             );
 
             return result.rows[0].can_join;
@@ -84,10 +105,10 @@ export class BattleService {
         }
     }
 
-    static async isBattleFull(client: PoolClient, BattleId: number): Promise<boolean> {
+    static async isRoomFull(client: PoolClient, roomId: number): Promise<boolean> {
         const result = await client.query(
-            `SELECT COUNT(*) >= 2 AS is_full FROM BattleUsers WHERE BattleId = $1`,
-            [BattleId]
+            `SELECT COUNT(*) >= 2 AS is_full FROM room_users WHERE room_id = $1`,
+            [roomId]
         );
         return result.rows[0].is_full;
     }

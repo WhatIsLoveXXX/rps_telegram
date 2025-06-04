@@ -1,6 +1,6 @@
 import { GameResult } from "../model/gameResult";
 import db from "../config/db";
-import {BattleService} from "./roomService";
+import {RoomService} from "./roomService";
 import {BalanceService} from "./balanceService";
 
 export class GameService {
@@ -9,7 +9,7 @@ export class GameService {
     static async processGameResult(
         user1Id: string,
         user2Id: string,
-        betAmount: bigint,
+        betAmount: number,
         winnerId: string | null,
         roomId: number
     ): Promise<void> {
@@ -53,7 +53,7 @@ export class GameService {
                     );
                 }
                 
-                await BattleService.deleteBattle(client, roomId)
+                await RoomService.deleteRoom(client, roomId)
 
                 await client.query('COMMIT');
                 return;

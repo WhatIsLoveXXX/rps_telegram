@@ -3,6 +3,7 @@ import {User} from '../model/user';
 import {findTransactionByHashWithWait, sendTon} from "../util/TonSenderReceiver";
 import {TransactionService} from "./transactionService";
 import {TransactionEnum} from "../model/transactionType";
+import {Queryable} from "../config/types";
 
 export class UserService {
     static async createUser(id: number, name: string): Promise<User> {
@@ -19,15 +20,19 @@ export class UserService {
         return result.rows[0].count > 0;
     }
 
-    static async getUserById(id: number): Promise<User | null> {
-        const result = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    static async getUserById(id: number, client: Queryable = db): Promise<User | null> {
+        const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
         if (result.rows.length === 0) return null;
         return User.fromRow(result.rows[0]);
     }
 
     static async updateWallet(id: number, wallet: string): Promise<void> {
-         db.query('UPDATE users set wallet = $1 where id = $2', [wallet, id]);
+        if (wallet.length !== 48) {
+            throw new Error('Invalid wallet length: must be exactly 48 characters.');
+        }
+        await db.query('UPDATE users SET wallet = $1 WHERE id = $2', [wallet, id]);
     }
+
 
     static async isWalletExist(id: number): Promise<boolean> {
         const wallet = await db.query('select wallet from userswhere id = $1', [id]);

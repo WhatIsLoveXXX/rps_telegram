@@ -1,10 +1,10 @@
 import express from 'express';
-import { BattleController } from '../controller/roomController';
+import { RoomController } from '../controller/roomController';
 
 const router = express.Router();
 
-router.post('/rooms/create', BattleController.createBattle);
-router.get('/rooms/open', BattleController.findOpenBattles);
-router.post('/rooms/join', BattleController.joinBattle);
+router.post('/rooms/create', RoomController.createRoom);
+router.get('/rooms/open', RoomController.findOpenRooms);
+router.post('/rooms/join', RoomController.joinRoom); 
 
 export default router;

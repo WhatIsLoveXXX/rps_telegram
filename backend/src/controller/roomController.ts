@@ -1,45 +1,45 @@
 import { Request, Response } from 'express';
-import {BattleService} from "../service/roomService";
+import {RoomService} from "../service/roomService";
 
-export class BattleController {
-    static async createBattle(req: Request, res: Response) {
+export class RoomController {
+    static async createRoom(req: Request, res: Response) {
         const userId = res.locals.initData?.user?.id;
         const { betAmount } = req.body;
 
         try {
-            const Battle = await BattleService.createBattleWithUser(userId, BigInt(betAmount));
-            res.status(201).json({ BattleId: Battle.id });
+            const room = await RoomService.createRoomWithUser(userId, betAmount);
+            res.status(201).json({ roomId: room.id });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: 'Could not create Battle' });
+            res.status(500).json({ error: 'Could not create Room' });
         }
     }
 
-    static async findOpenBattles(req: Request, res: Response) {
+    static async findOpenRooms(req: Request, res: Response) {
         try {
-            const Battles = await BattleService.findOpenBattles();
-            res.json(Battles);
+            const rooms = await RoomService.findOpenRooms();
+            res.json(rooms);
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: 'Could not fetch Battles' });
+            res.status(500).json({ error: 'Could not fetch Rooms' });
         }
     }
 
-    static async joinBattle(req: Request, res: Response) {
+    static async joinRoom(req: Request, res: Response) {
         const userId = res.locals.initData?.user?.id;
-        const { BattleId } = req.body;
+        const { roomId } = req.body;
 
-        if (!BattleId || typeof BattleId !== 'number') {
-            return res.status(400).json({ error: 'Invalid or missing BattleId' });
+        if (!roomId || typeof roomId !== 'number') {
+            return res.status(400).json({ error: 'Invalid or missing roomId' });
         }
 
         try {
-            // await BattleService.joinBattle(PoolClient, BattleId, BigInt(userId));
-            res.json({ message: 'Joined Battle', BattleId });
+            await RoomService.joinRoom(roomId, userId);
+            res.json({ message: 'Joined Room', roomId });
         } catch (error: any) {
             console.error(error);
-            const status = error.message === 'Battle is full' ? 400 : 500;
-            res.status(status).json({ error: error.message || 'Could not join Battle' });
+            const status = error.message === 'Room is full' ? 400 : 500;
+            res.status(status).json({ error: error.message || 'Could not join Room' });
         }
     }
 }

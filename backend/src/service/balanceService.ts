@@ -1,7 +1,7 @@
 import {PoolClient} from "pg";
 
 export class BalanceService {
-    static async deductBalance(client: PoolClient, amount: bigint, userId: string): Promise<void> {
+    static async deductBalance(client: PoolClient, amount: number, userId: string): Promise<void> {
         try {
             await client.query(`UPDATE users set balance = balance - $1 WHERE user_id = $2`, 
                 [amount, userId]);
@@ -11,7 +11,7 @@ export class BalanceService {
         }
     }
 
-    static async addBalance(client: PoolClient, amount: bigint, userId: string): Promise<void> {
+    static async addBalance(client: PoolClient, amount: number, userId: string): Promise<void> {
         try {
             await client.query(
                 `UPDATE users SET balance = balance + $1 WHERE user_id = $2`,
