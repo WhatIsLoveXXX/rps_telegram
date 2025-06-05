@@ -3,7 +3,6 @@ import { Input } from "@/components/Input/Input";
 import { Modal } from "@/components/Modal/Modal";
 import { FC, useState } from "react";
 import { createRoom } from "../../../../../services/room.api";
-import { useInitDataRow } from "@/hooks/useInitDataRow";
 import { useNavigate } from "react-router-dom";
 
 interface CreateBattleModalProps {
@@ -15,16 +14,13 @@ export const CreateBattleModal: FC<CreateBattleModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const initDataRaw = useInitDataRow();
   const [sumTON, setSumTON] = useState("");
   const navigate = useNavigate();
 
   const handleCreateBattle = async () => {
     try {
-      // const response = await createRoom(initDataRaw, Number(sumTON));
-      // console.log(response);
-      // navigate(`/battle/${response.id}`);
-      navigate(`/battle/1`);
+      const { roomId } = await createRoom(Number(sumTON));
+      navigate(`/battle/${roomId}`);
     } catch (error) {
       console.error(error);
     }

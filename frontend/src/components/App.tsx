@@ -6,16 +6,14 @@ import { routes } from "@/navigation/routes.tsx";
 import { MainLayout } from "@/layouts/MainLayout";
 import { useEffect } from "react";
 import { authorize } from "../../services/users.api";
-import { useInitDataRow } from "@/hooks/useInitDataRow";
 
 export function App() {
   const lp = useLaunchParams();
   const isDark = useSignal(miniApp.isDark);
-  const initDataRaw = useInitDataRow();
 
   useEffect(() => {
-    authorize(initDataRaw);
-  }, [initDataRaw]);
+    authorize();
+  }, []);
 
   return (
     <>

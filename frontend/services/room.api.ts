@@ -1,52 +1,26 @@
 import { api } from "./api";
 
-export const createRoom = async (
-  initDataRaw: string | undefined,
-  betAmount: number
-) => {
+export const createRoom = async (betAmount: number) => {
   try {
-    const response = await api.post(
-      "/rooms/create",
-      { betAmount },
-      {
-        headers: {
-          Authorization: `tma ${initDataRaw}`,
-        },
-      }
-    );
+    const response = await api.post("/rooms/create", { betAmount });
     return response.data;
   } catch (error) {
-    throw new Error(`Error creating room`);
+    throw new Error(error as string);
   }
 };
 
-export const getOpenRooms = async (initDataRaw: string | undefined) => {
+export const getOpenRooms = async () => {
   try {
-    const response = await api.get("/rooms/open", {
-      headers: {
-        Authorization: `tma ${initDataRaw}`,
-      },
-    });
+    const response = await api.get("/rooms/open", {});
     return response.data;
   } catch (error) {
     throw new Error(`Error fetching open rooms`);
   }
 };
 
-export const joinRoom = async (
-  initDataRaw: string | undefined,
-  roomId: number
-) => {
+export const joinRoom = async (roomId: number) => {
   try {
-    const response = await api.post(
-      "/rooms/join",
-      { roomId },
-      {
-        headers: {
-          Authorization: `tma ${initDataRaw}`,
-        },
-      }
-    );
+    const response = await api.post("/rooms/join", { roomId });
     return response.data;
   } catch (error) {
     throw new Error(`Error joining room`);
