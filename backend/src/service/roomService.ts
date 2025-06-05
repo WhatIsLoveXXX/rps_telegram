@@ -5,7 +5,7 @@ import {UserService} from "./userService";
 import {Queryable} from "../config/types";
 
 export class RoomService {
-    static async createRoomWithUser(userId: number, betAmount: number): Promise<Room> {
+    static async createRoom(userId: number, betAmount: number): Promise<Room> {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
@@ -49,8 +49,6 @@ export class RoomService {
     // но комната то уже есть, шо делать?
     static async joinRoom(roomId: number, userId: number, client: Queryable = db): Promise<void> {
         try {
-            await client.query('BEGIN');
-
             const result = await client.query(
                 `SELECT COUNT(*) FROM room_users WHERE room_id = $1`,
                 [roomId]
@@ -69,15 +67,33 @@ export class RoomService {
         }
     }
 
+    static async leaveRoom(roomId: number, userId: number, client: Queryable = db): Promise<void> {
+        try {
+            
+            await client.query(
+                `DELETE FROM room_users WHERE room_id = $1 and user_id = $2`,
+                [roomId, userId]
+            );
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    static async isRoomEmpty(roomId: number, client: Queryable = db): Promise<boolean> {
+        const result = await client.query(
+                `SELECT COUNT(*) FROM room_users WHERE room_id = $1`,
+                [roomId]);
+        return result.rows.length === 0;
+    }
+
     static async getRoomById(id: number, client: Queryable = db): Promise<Room | null> {
         const result = await client.query('SELECT * FROM rooms WHERE id = $1', [id]);
         if (result.rows.length === 0) return null;
         return Room.fromRow(result.rows[0]);
     }
 
-    static async deleteRoom(client: PoolClient, roomId: number): Promise<void> {
+    static async deleteRoom(roomId: number, client: Queryable = db): Promise<void> {
         try {
-            await client.query(`DELETE FROM room_users WHERE room_id = $1`, [roomId]);
             await client.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
         } catch (err) {
             throw err;

@@ -7,7 +7,7 @@ export class RoomController {
         const { betAmount } = req.body;
 
         try {
-            const room = await RoomService.createRoomWithUser(userId, betAmount);
+            const room = await RoomService.createRoom(userId, betAmount);
             res.status(201).json({ roomId: room.id });
         } catch (error) {
             console.error(error);
