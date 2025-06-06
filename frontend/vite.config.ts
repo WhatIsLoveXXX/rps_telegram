@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react-swc";
 import fs from "fs";
 import svgr from "vite-plugin-svgr";
 import tailwindcss from "@tailwindcss/vite";
-import mkcert from "vite-plugin-mkcert";
+// import mkcert from "vite-plugin-mkcert";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -22,15 +22,15 @@ export default defineConfig({
     // Using this plugin requires admin rights on the first dev-mode launch.
     // https://www.npmjs.com/package/vite-plugin-mkcert
     // process.env.HTTPS && mkcert(),
-    mkcert(),
+    // mkcert(),
   ],
   publicDir: "./public",
   // server: {
   //   // Exposes your dev server and makes it accessible for the devices in the same network.
   //   host: true,
   // },
-  server: {
-    host: "rds-mini-app.local",
-    port: 443,
-  },
+  // server: {
+  //   host: "rds-mini-app.local",
+  //   port: 443,
+  // },
 });

@@ -27,6 +27,9 @@ export const useSocketConnection = () => {
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("connect_error", onError);
+    socket.on("error", (err) => {
+      console.log("SOCKET: error", err);
+    });
 
     return () => {
       socket.disconnect();
