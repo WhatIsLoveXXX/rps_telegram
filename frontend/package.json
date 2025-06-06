@@ -23,6 +23,7 @@
     "@ton/ton": "^15.2.1",
     "@tonconnect/ui-react": "^2.0.5",
     "axios": "^1.8.4",
+    "buffer": "^6.0.3",
     "eruda": "^3.0.1",
     "gifuct-js": "^2.1.2",
     "lucide-react": "^0.487.0",
