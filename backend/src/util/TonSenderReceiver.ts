@@ -1,11 +1,6 @@
-import { mnemonicToWalletKey } from "ton-crypto";
-import {Address, Cell, Transaction,comment,
-    internal, OpenedContract,
-    SendMode,
-    toNano,
-    TonClient,
-    WalletContractV4} from "ton";
-import dotenv from "dotenv";
+import { mnemonicToWalletKey } from 'ton-crypto';
+import { Address, Cell, Transaction, comment, internal, OpenedContract, SendMode, toNano, TonClient, WalletContractV4 } from 'ton';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -24,7 +19,7 @@ async function waitForSeqnoChange(
     timeout = 180_000,
     interval = 3_000
 ): Promise<void> {
-    console.log("⏳ Waiting for transaction confirmation...");
+    console.log('⏳ Waiting for transaction confirmation...');
 
     const start = Date.now();
 
@@ -32,14 +27,14 @@ async function waitForSeqnoChange(
         const elapsed = Date.now() - start;
 
         if (elapsed > timeout) {
-            throw new Error("⏰ Timeout: Транзакция не подтвердилась за отведённое время.");
+            throw new Error('⏰ Timeout: Транзакция не подтвердилась за отведённое время.');
         }
 
         const currentSeqno = await contract.getSeqno();
         console.log(`🔁 seqno = ${currentSeqno} | waiting > ${oldSeqno} (${Math.floor(elapsed / 1000)}s)`);
 
         if (currentSeqno > oldSeqno) {
-            console.log("✅ Transaction confirmed");
+            console.log('✅ Transaction confirmed');
             return;
         }
 
@@ -48,14 +43,10 @@ async function waitForSeqnoChange(
 }
 
 function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function getTransactionByMessageHash(
-    client: TonClient,
-    address: Address,
-    desiredMessageHash: string
-): Promise<Transaction> {
+export async function getTransactionByMessageHash(client: TonClient, address: Address, desiredMessageHash: string): Promise<Transaction> {
     const maxRetries = 5;
     const delayMs = 2000;
 
@@ -65,9 +56,9 @@ export async function getTransactionByMessageHash(
 
         const txs = await client.getTransactions(address, { limit });
 
-        const tx = txs.find(tx => {
+        const tx = txs.find((tx) => {
             try {
-                const inMsgHash = tx.inMessage?.body?.hash?.().toString("hex");
+                const inMsgHash = tx.inMessage?.body?.hash?.().toString('hex');
                 return inMsgHash === desiredMessageHash;
             } catch {
                 return false;
@@ -75,7 +66,7 @@ export async function getTransactionByMessageHash(
         });
 
         if (tx) {
-            console.log("✅ Transaction found!");
+            console.log('✅ Transaction found!');
             return tx;
         }
 
@@ -85,21 +76,20 @@ export async function getTransactionByMessageHash(
         }
     }
 
-    throw new Error("❌ Transaction not found after all retries.");
+    throw new Error('❌ Transaction not found after all retries.');
 }
 
-
 export async function sendTon(wallet_address: string, amount: number) {
-    const mnemonic = SECRET_WALLET_WORDS.split(" ");
+    const mnemonic = SECRET_WALLET_WORDS.split(' ');
     const { publicKey, secretKey } = await mnemonicToWalletKey(mnemonic);
     const wallet = WalletContractV4.create({ workchain: 0, publicKey });
     const amountNano = toNano(amount);
-    
+
     const contract = client.open(wallet);
     const [seqNo, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
 
     if (balance < amountNano) {
-        throw new Error("❌ Not enough funds to transfer.");
+        throw new Error('❌ Not enough funds to transfer.');
     }
 
     const transfer = contract.createTransfer({
@@ -115,11 +105,11 @@ export async function sendTon(wallet_address: string, amount: number) {
 
     await contract.send(transfer);
 
-    console.log("📤 Transaction sent. Waiting for confirmation...");
-    
+    console.log('📤 Transaction sent. Waiting for confirmation...');
+
     await waitForSeqnoChange(contract, seqNo);
 
-    console.log("✅ Transaction confirmed. Receiving details...");
+    console.log('✅ Transaction confirmed. Receiving details...');
 
     return await getTransactionByMessageHash(client, contract.address, messageHash);
 }
@@ -131,8 +121,8 @@ export async function findTransactionByHashWithWait(
     interval: number = 5_000
 ) {
     const address = Address.parse(walletAddress);
-    const cell = Cell.fromBoc(Buffer.from(boc, "base64"))[0];
-    const hashToFind = cell.hash().toString("hex");
+    const cell = Cell.fromBoc(Buffer.from(boc, 'base64'))[0];
+    const hashToFind = cell.hash().toString('hex');
 
     const start = Date.now();
 
@@ -140,7 +130,7 @@ export async function findTransactionByHashWithWait(
         const elapsed = Date.now() - start;
 
         if (elapsed > timeout) {
-            console.warn("⏰ Transaction waiting timeout");
+            console.warn('⏰ Transaction waiting timeout');
             return null;
         }
 
@@ -148,14 +138,14 @@ export async function findTransactionByHashWithWait(
             const txs = await client.getTransactions(address, { limit: 10 });
 
             for (const tx of txs) {
-                const currentHash = tx.hash().toString("hex");
+                const currentHash = tx.hash().toString('hex');
                 if (currentHash === hashToFind) {
-                    console.log("✅ Transaction found");
+                    console.log('✅ Transaction found');
                     return tx;
                 }
             }
         } catch (err) {
-            console.error("❌ Error verifying transaction:", err);
+            console.error('❌ Error verifying transaction:', err);
         }
 
         console.log(`⏳ Waiting for transaction... (${Math.floor(elapsed / 1000)}s)`);

@@ -8,6 +8,6 @@ export class RoomUser {
     }
 
     static fromRow(row: any): RoomUser {
-        return new RoomUser(row.room_id, row.user_id);
+        return new RoomUser(row.room_id, Number(row.user_id));
     }
 }

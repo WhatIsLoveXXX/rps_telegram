@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import {RoomService} from "../service/roomService";
+import { RoomService } from '../service/roomService';
 
 export class RoomController {
     static async createRoom(req: Request, res: Response) {
@@ -29,7 +29,7 @@ export class RoomController {
         const userId = res.locals.initData?.user?.id;
         const { roomId } = req.body;
 
-        if (!roomId || typeof roomId !== 'number') {
+        if (!roomId) {
             return res.status(400).json({ error: 'Invalid or missing roomId' });
         }
 

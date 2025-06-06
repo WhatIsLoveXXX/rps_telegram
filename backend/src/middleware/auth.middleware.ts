@@ -11,7 +11,7 @@ dotenv.config();
 const token = process.env.BOT_TOKEN || ''; 
 
 function setInitData(res: Response, initData: InitData): void {
-    res.locals.initData = initData;
+    res.locals.initData = initData; 
 }
 
 function getInitData(res: Response): InitData | undefined {

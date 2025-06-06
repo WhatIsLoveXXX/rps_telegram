@@ -1,4 +1,4 @@
-import {getTransactionByOrder, TransactionEnum} from "./transactionType";
+import { getTransactionByOrder, TransactionEnum } from './transactionType';
 
 export class Transaction {
     id: number;
@@ -18,13 +18,6 @@ export class Transaction {
     }
 
     static fromRow(row: any): Transaction {
-        return new Transaction(
-            row.id,
-            row.user_id,
-            parseFloat(row.amount),
-            row.type,
-            row.tx_hash,
-            row.created_at
-        );
+        return new Transaction(Number(row.id), Number(row.user_id), parseFloat(row.amount), row.type, row.tx_hash, row.created_at);
     }
 }

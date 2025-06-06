@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS users (
                                      id BIGINT PRIMARY KEY,
-                                     name TEXT DEFAULT '',
+                                     first_name TEXT DEFAULT '',
+                                     last_name TEXT DEFAULT '',
+                                     photo_url TEXT DEFAULT '',
                                      balance BIGINT DEFAULT 0,
                                      wallet VARCHAR DEFAULT NULL
 );

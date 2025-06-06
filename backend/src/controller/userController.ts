@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UserService } from "../service/userService";
+import { UserService } from '../service/userService';
 
 /**
  * Controller handling user-related operations such as authorization, wallet updates,
@@ -15,8 +15,11 @@ export class UserController {
      * @returns JSON response indicating authorization status or error
      */
     static async authorize(req: Request, res: Response) {
-        const userId = res.locals.initData?.user?.id;
-        const firstName = res.locals.initData?.user?.first_name;
+        const user = res.locals.initData?.user;
+        const userId = user.id;
+        const firstName = user.first_name;
+        const lastName = user.last_name;
+        const photoUrl = user.photo_url;
 
         const isUserExists = await UserService.isExist(userId);
 
@@ -25,7 +28,7 @@ export class UserController {
         }
 
         try {
-            const user = await UserService.createUser(userId, firstName);
+            const user = await UserService.createUser(userId, firstName, lastName, photoUrl);
             console.log(user);
             return res.status(201).json({ message: 'User created from Telegram', user });
         } catch (err) {
@@ -88,7 +91,7 @@ export class UserController {
             return res.status(400).json({ error: 'Invalid userId or amount' });
         }
 
-        if (!await UserService.isWalletExist(userId)) {
+        if (!(await UserService.isWalletExist(userId))) {
             return res.status(400).json({ error: 'User has empty wallet', userId });
         }
 

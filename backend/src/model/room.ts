@@ -10,6 +10,6 @@ export class Room {
     }
 
     static fromRow(row: any): Room {
-        return new Room(row.id, row.bet, row.createdAt);
+        return new Room(row.id, Number(row.bet), row.createdAt);
     }
 }

@@ -1,17 +1,17 @@
 import db from '../config/db';
-import {User} from '../model/user';
-import {findTransactionByHashWithWait, sendTon} from "../util/TonSenderReceiver";
-import {TransactionService} from "./transactionService";
-import {TransactionEnum} from "../model/transactionType";
-import {Queryable} from "../config/types";
+import { User } from '../model/user';
+import { findTransactionByHashWithWait, sendTon } from '../util/TonSenderReceiver';
+import { TransactionService } from './transactionService';
+import { TransactionEnum } from '../model/transactionType';
+import { Queryable } from '../config/types';
 
 export class UserService {
-    static async createUser(id: number, name: string): Promise<User> {
-        await db.query(
-            'INSERT INTO users (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',
-            [id, name]
+    static async createUser(id: number, firstName: string, lastName: string, photoUrl: string): Promise<User> {
+        const result = await db.query(
+            'INSERT INTO users (id, first_name, last_name, photo_url) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING returning *',
+            [id, firstName, lastName, photoUrl]
         );
-        return new User(id, name, 0);
+        return User.fromRow(result.rows[0]);
     }
 
     static async isExist(id: number): Promise<boolean> {
@@ -33,7 +33,6 @@ export class UserService {
         await db.query('UPDATE users SET wallet = $1 WHERE id = $2', [wallet, id]);
     }
 
-
     static async isWalletExist(id: number): Promise<boolean> {
         const wallet = await db.query('select wallet from userswhere id = $1', [id]);
         return !(wallet.rows.length === 0 || !wallet.rows[0]);
@@ -44,10 +43,7 @@ export class UserService {
         try {
             await client.query('BEGIN');
 
-            const userResult = await client.query(
-                'SELECT balance, wallet_address FROM users WHERE id = $1 FOR UPDATE',
-                [userId]
-            );
+            const userResult = await client.query('SELECT balance, wallet_address FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
             if (userResult.rowCount === 0) {
                 await client.query('ROLLBACK');
@@ -55,25 +51,19 @@ export class UserService {
             }
 
             const { wallet_address } = userResult.rows[0];
-            
+
             const transaction = await findTransactionByHashWithWait(wallet_address, boc);
             if (transaction == null) {
-                await client.query(
-                    'INSERT INTO pending_deposits (user_id, boc, amount) VALUES ($1, $2, $3)',
-                    [userId, boc, amount]
-                );
+                await client.query('INSERT INTO pending_deposits (user_id, boc, amount) VALUES ($1, $2, $3)', [userId, boc, amount]);
                 await client.query('ROLLBACK');
-                throw new Error("Transaction not found")
+                throw new Error('Transaction not found');
             }
-            const txHash = transaction.hash().toString("hex");
-            
-            const result = await client.query(
-                'UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING *',
-                [amount, userId]
-            );
-            
+            const txHash = transaction.hash().toString('hex');
+
+            const result = await client.query('UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING *', [amount, userId]);
+
             await TransactionService.createTransaction(client, userId, amount, TransactionEnum.DEPOSIT, txHash);
-            
+
             await client.query('COMMIT');
             return User.fromRow(result.rows[0]);
         } catch (err) {
@@ -89,10 +79,7 @@ export class UserService {
         try {
             await client.query('BEGIN');
 
-            const userResult = await client.query(
-                'SELECT balance, wallet_address FROM users WHERE id = $1 FOR UPDATE',
-                [userId]
-            );
+            const userResult = await client.query('SELECT balance, wallet_address FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
             if (userResult.rowCount === 0) {
                 await client.query('ROLLBACK');
@@ -107,11 +94,8 @@ export class UserService {
 
             const transaction = await sendTon(wallet_address, amount);
             const txHash = Buffer.from(transaction.hash()).toString('hex');
-            
-            const result = await client.query(
-                'UPDATE users SET balance = balance - $1 WHERE id = $2 RETURNING *',
-                [amount, userId]
-            );
+
+            const result = await client.query('UPDATE users SET balance = balance - $1 WHERE id = $2 RETURNING *', [amount, userId]);
 
             await TransactionService.createTransaction(client, userId, amount, TransactionEnum.WITHDRAWAL, txHash);
 
@@ -124,5 +108,4 @@ export class UserService {
             client.release();
         }
     }
-
 }
