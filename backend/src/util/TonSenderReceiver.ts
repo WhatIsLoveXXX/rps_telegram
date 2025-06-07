@@ -1,5 +1,18 @@
 import { mnemonicToWalletKey } from 'ton-crypto';
-import { Address, Cell, Transaction, comment, internal, OpenedContract, SendMode, toNano, TonClient, WalletContractV4 } from 'ton';
+import {
+    Address,
+    Cell,
+    Transaction,
+    comment,
+    internal,
+    OpenedContract,
+    SendMode,
+    toNano,
+    TonClient,
+    WalletContractV4,
+    beginCell,
+    storeMessage,
+} from 'ton';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -117,13 +130,27 @@ export async function sendTon(wallet_address: string, amount: number) {
 export async function findTransactionByHashWithWait(
     walletAddress: string,
     boc: string,
-    timeout: number = 180_000,
+    timeout: number = 30_000,
     interval: number = 5_000
 ) {
     const address = Address.parse(walletAddress);
-    const cell = Cell.fromBoc(Buffer.from(boc, 'base64'))[0];
-    const hashToFind = cell.hash().toString('hex');
+    /*
+    const hashToFind = Cell.fromBoc(Buffer.from(boc, 'base64'))[0].hash().toString('hex');
+    const inHash = beginCell().store(storeMessage(it.inMessage)).endCell().hash().toString('hex');
+    */
 
+    /* Это для получателя только по месседжу
+    const body = beginCell()
+        .storeUint(0, 32) // write 32 zero bits to indicate that a text comment will follow
+        .storeStringTail(`Transaction sent from Mock user name`) // write our text comment
+        .endCell();
+   
+    
+    const payloadBase64 = body.toBoc().toString('base64');
+
+    const messageCell = Cell.fromBoc(Buffer.from(payloadBase64, 'base64'))[0];
+    const messageHash = messageCell.hash().toString('hex');
+    */
     const start = Date.now();
 
     while (true) {
@@ -138,12 +165,27 @@ export async function findTransactionByHashWithWait(
             const txs = await client.getTransactions(address, { limit: 10 });
 
             for (const tx of txs) {
-                const currentHash = tx.hash().toString('hex');
-                if (currentHash === hashToFind) {
-                    console.log('✅ Transaction found');
+                if (tx.inMessage) {
+                    const currentBocMessage = beginCell().store(storeMessage(tx.inMessage)).endCell().toBoc().toString('base64');
+                    if (currentBocMessage === boc) {
+                        console.log('✅ Transaction found');
+                        return tx;
+                    }
+                }
+            }
+
+            /* Это для получателя только по месседжу
+            for (const tx of txs) {
+                if (!tx.inMessage) continue;
+
+                const inMsgBodyHash = tx.inMessage.body.hash().toString('hex');
+
+                if (inMsgBodyHash === messageHash) {
+                    console.log('✅ Транзакция у получателя найдена!');
                     return tx;
                 }
             }
+            */
         } catch (err) {
             console.error('❌ Error verifying transaction:', err);
         }

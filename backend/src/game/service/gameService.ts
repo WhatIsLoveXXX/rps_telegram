@@ -77,7 +77,6 @@ export class GameService {
 
     static async connectUser(io: Server, socket: Socket, roomId: string, userId: number): Promise<void> {
         const client = await db.connect();
-        console.log('inside service| connect user');
         try {
             await client.query('BEGIN');
 
@@ -109,14 +108,12 @@ export class GameService {
             socket.data.userId = userId;
 
             this.initGameState(this.games, roomId);
-            console.log('before adding to state:', user);
             this.addUserToPlayerState(this.games, roomId, user);
 
             socket.join(roomId.toString());
 
             const clientSize = io.sockets.adapter.rooms.get(roomId.toString())?.size || 0;
             const gameState = this.games.get(roomId);
-            console.log('after adding to state from state:', gameState?.players.get(userId.toString()));
 
             if (gameState) io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
 
@@ -160,8 +157,6 @@ export class GameService {
                 //
                 //     gamePreparationState.delete(roomId);
                 // }, 10_000);
-
-                io.in(roomId.toString()).emit('waiting_ready');
             }
         } catch (error) {
             await client.query('ROLLBACK');
@@ -173,16 +168,19 @@ export class GameService {
     }
 
     static async setUserReady(io: Server, socket: Socket, roomId: string, userId: number): Promise<void> {
-        const game = this.games.get(roomId);
-        if (!game) return;
+        const gameState = this.games.get(roomId);
+        if (!gameState) return;
+        const players = gameState.players;
 
-        const user = game.players.get(userId.toString());
+        const user = players.get(userId.toString());
 
         if (user) {
             user.isReady = true;
         }
 
-        if (game.players.size === 2) {
+        io.in(roomId).emit('game_state', { players: [...players.values()] });
+
+        if ([...gameState.players.values()].every((it) => it.isReady)) {
             // startGame(roomId);
         }
     }
@@ -214,8 +212,6 @@ export class GameService {
         // Если только один сходил, запускаем таймер, если он ещё не запущен
         if (!game.moveTimeout) {
             game.moveTimeout = setTimeout(() => {
-                console.log('Ход не завершён вовремя, выбираем случайные ходы');
-
                 for (const p of allPlayers) {
                     if (!p.selectedCard) {
                         p.selectedCard = this.randomMove();
@@ -249,7 +245,14 @@ export class GameService {
 
             await client.query('COMMIT');
             console.log(`User ${userId} removed from room ${roomId} (reason: ${reason})`);
+            const gameState = this.games.get(roomId);
+            if (gameState) {
+                gameState.players.delete(userId.toString());
+                console.log('User ${userId} removed from gameState');
+                io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
+            }
             if (isRoomEmpty) {
+                this.games.delete(roomId);
                 console.log(`Room ${roomId} was removed`);
             }
         } catch (error) {

@@ -29,7 +29,6 @@ export class UserController {
 
         try {
             const user = await UserService.createUser(userId, firstName, lastName, photoUrl);
-            console.log(user);
             return res.status(201).json({ message: 'User created from Telegram', user });
         } catch (err) {
             console.error('Failed to create user:', err);
@@ -89,10 +88,6 @@ export class UserController {
 
         if (!userId || typeof amount !== 'number' || amount <= 0) {
             return res.status(400).json({ error: 'Invalid userId or amount' });
-        }
-
-        if (!(await UserService.isWalletExist(userId))) {
-            return res.status(400).json({ error: 'User has empty wallet', userId });
         }
 
         try {

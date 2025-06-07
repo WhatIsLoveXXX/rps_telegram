@@ -9,7 +9,6 @@ export function registerGameHandlers(io: Server, socket: Socket) {
     });
 
     socket.on(SocketAction.CONNECT_USER, async ({ roomId, userId }) => {
-        console.log('inside controller| connect user');
         await GameService.connectUser(io, socket, roomId, userId);
     });
 

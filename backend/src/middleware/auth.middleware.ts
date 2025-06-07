@@ -1,17 +1,13 @@
 import { validate, parse, type InitData } from '@telegram-apps/init-data-node';
-import {
-    type ErrorRequestHandler,
-    type RequestHandler,
-    type Response,
-} from 'express';
-import dotenv from "dotenv";
+import { type ErrorRequestHandler, type RequestHandler, type Response } from 'express';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
-const token = process.env.BOT_TOKEN || ''; 
+const token = process.env.BOT_TOKEN || '';
 
 function setInitData(res: Response, initData: InitData): void {
-    res.locals.initData = initData; 
+    res.locals.initData = initData;
 }
 
 function getInitData(res: Response): InitData | undefined {
@@ -20,9 +16,7 @@ function getInitData(res: Response): InitData | undefined {
 
 export const authMiddleware: RequestHandler = (req, res, next) => {
     const [authType, authData = ''] = (req.header('authorization') || '').split(' ');
-    const header = (req.header('authorization') || '');
-    // console.log(header);
-    
+
     switch (authType) {
         case 'tma':
             try {
@@ -33,7 +27,7 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
                 return next();
             } catch (e) {
                 return next(e);
-            } 
+            }
         default:
             return res.status(401).json('Unauthorized');
     }
@@ -47,7 +41,7 @@ export const showInitDataMiddleware: RequestHandler = (_req, res, next) => {
     res.json(initData);
 };
 
-export const defaultErrorMiddleware: ErrorRequestHandler = (err, _req, res,  _next) => {
+export const defaultErrorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(500).json({
         error: err.message,
     });

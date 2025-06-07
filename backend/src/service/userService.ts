@@ -15,7 +15,6 @@ export class UserService {
     }
 
     static async isExist(id: number): Promise<boolean> {
-        console.log(id);
         const result = await db.query('SELECT COUNT(*) AS count FROM users WHERE id = $1', [id]);
         return result.rows[0].count > 0;
     }
@@ -42,20 +41,20 @@ export class UserService {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
+            const wallet_address = 'UQDu9MSvI-jLSosK_BsRUjfvIK2G2hCHOTz6ItL_CXrOY4KO';
+            // const wallet_address = 'UQAdIOrlEnwyzZjOne0-PhYvFfybwH21eFeklmSkyggbKrsa';
 
-            const userResult = await client.query('SELECT balance, wallet_address FROM users WHERE id = $1 FOR UPDATE', [userId]);
+            const userResult = await client.query('SELECT balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
             if (userResult.rowCount === 0) {
                 await client.query('ROLLBACK');
                 return null;
             }
 
-            const { wallet_address } = userResult.rows[0];
-
             const transaction = await findTransactionByHashWithWait(wallet_address, boc);
             if (transaction == null) {
-                await client.query('INSERT INTO pending_deposits (user_id, boc, amount) VALUES ($1, $2, $3)', [userId, boc, amount]);
                 await client.query('ROLLBACK');
+                await client.query('INSERT INTO pending_deposits (user_id, boc, amount) VALUES ($1, $2, $3)', [userId, boc, amount]);
                 throw new Error('Transaction not found');
             }
             const txHash = transaction.hash().toString('hex');
@@ -68,6 +67,7 @@ export class UserService {
             return User.fromRow(result.rows[0]);
         } catch (err) {
             await client.query('ROLLBACK');
+            console.log(err);
             throw err;
         } finally {
             client.release();
