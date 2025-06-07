@@ -10,7 +10,6 @@ import {
 } from "@tonconnect/ui-react";
 import { topUpBalance, withdrawBalance } from "../../../services/balance.api";
 import { prepareTransaction } from "@/utils/transactions/prepareTransaction";
-import { getTxByBOC } from "@/utils/transactions/getTxByBoc";
 
 export const UserProfile: FC = () => {
   const wallet = useTonWallet();
@@ -33,7 +32,7 @@ export const UserProfile: FC = () => {
   return (
     <Page back={false}>
       <p>UserProfile</p>
-      <div className="pb-10">
+      <div className="pb-10 flex justify-end">
         <div className="flex justify-between pt-2 px-1">
           {!wallet ? (
             <TonConnectButton className="ton-connect-page__button !m-0" />

@@ -19,6 +19,7 @@ export interface PlayerState {
   };
   selectedCard?: Card;
   roundsWon: number;
+  isReady: boolean;
 }
 
 interface GameState {
@@ -51,6 +52,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       wallet: null,
     },
     roundsWon: 0,
+    isReady: false,
+    selectedCard: undefined,
   },
   opponent: {
     user: {
@@ -62,6 +65,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       wallet: null,
     },
     roundsWon: 0,
+    isReady: false,
+    selectedCard: undefined,
   },
   result: undefined,
   gameOver: false,

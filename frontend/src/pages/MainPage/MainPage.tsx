@@ -6,22 +6,11 @@ import { CreateBattleModal } from "./components/CreateBattleModal/CreateBattleMo
 import { useNavigate } from "react-router-dom";
 
 export const MainPage: FC = () => {
-  const wallet = useTonWallet();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
     <Page back={false}>
-      {/* <div className="pb-10">
-        <div className="flex justify-between pt-2 px-1">
-          <UserInfo />
-          {!wallet ? (
-            <TonConnectButton className="ton-connect-page__button !m-0" />
-          ) : (
-            <TonConnectButton className="ton-connect-page__button-connected !m-0" />
-          )}
-        </div>
-      </div> */}
       <h1 className="text-center font-semibold mb-4">Actual battle</h1>
 
       <button onClick={() => setIsModalOpen(true)}>Create battle</button>
