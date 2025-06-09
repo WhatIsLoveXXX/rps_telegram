@@ -1,5 +1,5 @@
-import { Transaction } from '../model/transaction';
-import { TransactionEnum } from '../model/transactionType';
+import { Transaction } from './transaction';
+import { TransactionEnum } from './transactionType';
 import { PoolClient } from 'pg';
 
 export class TransactionService {

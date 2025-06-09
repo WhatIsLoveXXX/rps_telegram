@@ -1,8 +1,7 @@
-import db from '../config/db';
+import db from '../../config/db';
 import { Room } from '../model/room';
-import { PoolClient } from 'pg';
-import { UserService } from './userService';
-import { Queryable } from '../config/types';
+import { UserService } from '../../user/service/userService';
+import { Queryable } from '../../config/types';
 
 export class RoomService {
     static async createRoom(userId: number, betAmount: number): Promise<Room> {
@@ -19,7 +18,10 @@ export class RoomService {
                 throw new Error('Insufficient balance');
             }
 
-            const result = await client.query(`INSERT INTO rooms (betAmount) VALUES ($1) RETURNING id`, [betAmount]);
+            const result = await client.query(`INSERT INTO rooms (betAmount, creator_id) VALUES ($1, $2) RETURNING id`, [
+                betAmount,
+                userId,
+            ]);
             const room = Room.fromRow(result.rows[0]);
             await client.query('COMMIT');
             return room;
@@ -31,19 +33,41 @@ export class RoomService {
         }
     }
 
-    static async findOpenRooms(): Promise<Room[]> {
-        const result = await db.query(`
-            SELECT r.id FROM rooms r
-            JOIN room_users ru ON r.id = ru.room_id
+    static async findOpenRooms(options?: { creatorId?: number; betMin?: number; betMax?: number }): Promise<Room[]> {
+        const params: any[] = [];
+        let whereClauses: string[] = [];
+
+        if (options?.creatorId != null) {
+            params.push(options.creatorId);
+            whereClauses.push(`r.creator_id = $${params.length}`);
+        }
+
+        if (options?.betMin != null) {
+            params.push(options.betMin);
+            whereClauses.push(`r.bet_amount >= $${params.length}`);
+        }
+
+        if (options?.betMax != null) {
+            params.push(options.betMax);
+            whereClauses.push(`r.bet_amount <= $${params.length}`);
+        }
+
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        const query = `
+            SELECT r.* FROM rooms r
+                                JOIN room_users ru ON r.id = ru.room_id
+                ${whereSql}
             GROUP BY r.id
             HAVING COUNT(ru.user_id) = 1
-        `);
+            ORDER BY r.created_at DESC
+                LIMIT 50
+        `;
 
+        const result = await db.query(query, params);
         return result.rows.map(Room.fromRow);
     }
 
-    //Если чувак создал комнату, но что-то случилось с сокетом и он не присоединился,
-    // но комната то уже есть, шо делать?
     static async joinRoom(roomId: string, userId: number, client: Queryable = db): Promise<void> {
         try {
             const result = await client.query(`SELECT COUNT(*) FROM room_users WHERE room_id = $1`, [roomId]);
@@ -85,23 +109,22 @@ export class RoomService {
         }
     }
 
-    static async isUserInRoom(roomId: number, userId: number, client: Queryable = db): Promise<boolean> {
-        const result = await client.query(`SELECT 1 FROM room_users WHERE room_id = $1 AND user_id = $2 LIMIT 1`, [roomId, userId]);
-        return (result.rowCount ?? 0) > 0;
+    static async isRoomCreator(roomId: string, userId: number, client: Queryable = db): Promise<boolean> {
+        const result = await client.query(`SELECT 1 FROM rooms WHERE id = $1 AND creator_id = $2 LIMIT 1`, [roomId, userId]);
+
+        return !!result && typeof result.rowCount === 'number' && result.rowCount > 0;
     }
 
-    static async canUserJoin(client: PoolClient, roomId: number): Promise<boolean> {
-        try {
-            const result = await client.query(`SELECT COUNT(*) < 2 AS can_join FROM room_users WHERE room_id = $1`, [roomId]);
+    static async changeCreatorIfNeeded(roomId: string, userId: number, client: Queryable = db): Promise<void> {
+        const isCreator = await RoomService.isRoomCreator(roomId, userId, client);
+        if (!isCreator) return;
 
-            return result.rows[0].can_join;
-        } catch (err) {
-            throw err;
+        const res = await client.query(`SELECT user_id FROM room_users WHERE room_id = $1 LIMIT 1`, [roomId]);
+
+        if (res.rows.length > 0) {
+            const newCreatorId = res.rows[0].user_id;
+            await client.query(`UPDATE rooms SET creator_id = $1 WHERE id = $2`, [newCreatorId, roomId]);
+            console.log(`Room ${roomId}: creator changed to user ${newCreatorId}`);
         }
-    }
-
-    static async isRoomFull(client: PoolClient, roomId: number): Promise<boolean> {
-        const result = await client.query(`SELECT COUNT(*) >= 2 AS is_full FROM room_users WHERE room_id = $1`, [roomId]);
-        return result.rows[0].is_full;
     }
 }

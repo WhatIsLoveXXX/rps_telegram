@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE rooms (
                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                        created_at TIMESTAMP DEFAULT now(),
+                       creator_id BIGINT,
                        betAmount BIGINT NOT NULL
 );
 

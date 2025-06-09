@@ -1,14 +1,13 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import userRouter from "./route/userRoutes";
-import roomRouter from "./route/roomRoutes";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import userRouter from './user/route/userRoutes';
+import roomRouter from './room/route/roomRoutes';
 
-
-import {authMiddleware, defaultErrorMiddleware, showInitDataMiddleware} from "./middleware/auth.middleware";
-import http from "http";
-import {initSocket} from "./socket/socket";
-import {Server} from "socket.io";
+import { authMiddleware, defaultErrorMiddleware, showInitDataMiddleware } from './middleware/auth.middleware';
+import http from 'http';
+import { initSocket } from './socket/socket';
+import { Server } from 'socket.io';
 
 dotenv.config();
 
@@ -17,10 +16,10 @@ const port = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*", // Настрой при необходимости
-    methods: ["GET", "POST"]
-  }
+    cors: {
+        origin: '*', // Настрой при необходимости
+        methods: ['GET', 'POST'],
+    },
 });
 
 initSocket(io);
@@ -36,11 +35,10 @@ app.get('/api', showInitDataMiddleware);
 app.use(defaultErrorMiddleware);
 
 //Routes
-app.use("/api", userRouter)
-app.use("/api", roomRouter)
+app.use('/api', userRouter);
+app.use('/api', roomRouter);
 
-// Start server a 
+// Start server a
 server.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-}); 
-
+    console.log(`Server is running on port ${port}`);
+});

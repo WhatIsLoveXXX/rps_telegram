@@ -7,7 +7,7 @@ export enum GameResult {
 export const GameResultName: Record<GameResult, string> = {
     [GameResult.WIN]: 'Game Win',
     [GameResult.LOSE]: 'Game Loss',
-    [GameResult.DRAW]: 'Game Draw'
+    [GameResult.DRAW]: 'Game Draw',
 };
 
 export function getResultByOrder(order: number): GameResult {

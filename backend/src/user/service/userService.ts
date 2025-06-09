@@ -1,9 +1,10 @@
-import db from '../config/db';
+import db from '../../config/db';
 import { User } from '../model/user';
-import { findTransactionByHashWithWait, sendTon } from '../util/TonSenderReceiver';
-import { TransactionService } from './transactionService';
-import { TransactionEnum } from '../model/transactionType';
-import { Queryable } from '../config/types';
+import { findTransactionByHashWithWait, sendTon } from '../../ton-payments/util/TonSenderReceiver';
+import { TransactionService } from '../../ton-payments/transactionService';
+import { TransactionEnum } from '../../ton-payments/transactionType';
+import { Queryable } from '../../config/types';
+import { GameHistoryService } from '../../game/service/gameHistoryService';
 
 export class UserService {
     static async createUser(id: number, firstName: string, lastName: string, photoUrl: string): Promise<User> {
@@ -19,10 +20,23 @@ export class UserService {
         return result.rows[0].count > 0;
     }
 
-    static async getUserById(id: number, client: Queryable = db): Promise<User | null> {
-        const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
-        if (result.rows.length === 0) return null;
-        return User.fromRow(result.rows[0]);
+    static async getUserById(id: number, client: Queryable = db, withStats = false): Promise<User | null> {
+        const query = `
+            SELECT id, first_name, last_name, photo_url, balance, wallet
+            FROM users
+            WHERE id = $1
+        `;
+        const res = await client.query(query, [id]);
+        const row = res.rows[0];
+        if (!row) return null;
+
+        const user = User.fromRow(row);
+
+        if (withStats) {
+            user.stats = await GameHistoryService.getStatsForUser(id, client);
+        }
+
+        return user;
     }
 
     static async updateWallet(id: number, wallet: string): Promise<void> {
@@ -30,11 +44,6 @@ export class UserService {
             throw new Error('Invalid wallet length: must be exactly 48 characters.');
         }
         await db.query('UPDATE users SET wallet = $1 WHERE id = $2', [wallet, id]);
-    }
-
-    static async isWalletExist(id: number): Promise<boolean> {
-        const wallet = await db.query('select wallet from userswhere id = $1', [id]);
-        return !(wallet.rows.length === 0 || !wallet.rows[0]);
     }
 
     static async topUpBalance(userId: number, amount: number, boc: string): Promise<User | null> {

@@ -1,4 +1,4 @@
-import { User } from '../model/user';
+import { User } from '../user/model/user';
 
 export type Card = 'rock' | 'paper' | 'scissors';
 

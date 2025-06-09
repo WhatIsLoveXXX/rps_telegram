@@ -32,7 +32,7 @@ export class UserController {
             return res.status(201).json({ message: 'User created from Telegram', user });
         } catch (err) {
             console.error('Failed to create user:', err);
-            return res.status(401).json({ error: 'Unauthorized' });
+            return res.status(401).json({ error: err });
         }
     }
 

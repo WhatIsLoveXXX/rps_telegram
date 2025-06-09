@@ -1,11 +1,12 @@
-import { GameResult } from '../../model/gameResult';
+import { GameResult } from '../gameResult';
 import db from '../../config/db';
-import { RoomService } from '../../service/roomService';
-import { BalanceService } from '../../service/balanceService';
-import { UserService } from '../../service/userService';
+import { RoomService } from '../../room/service/roomService';
+import { BalanceService } from '../../user/service/balanceService';
+import { UserService } from '../../user/service/userService';
 import { DisconnectReason, Server, Socket } from 'socket.io';
 import { Card, GameState, PlayerState } from '../types';
-import { User } from '../../model/user';
+import { User } from '../../user/model/user';
+import { GameHistoryService } from './gameHistoryService';
 
 export class GameService {
     private static readonly MAX_RETRIES = 3;
@@ -87,7 +88,7 @@ export class GameService {
                 return;
             }
 
-            const user = await UserService.getUserById(userId, client);
+            const user = await UserService.getUserById(userId, client, true);
             if (!user) {
                 socket.emit('error', 'User not found');
                 await client.query('ROLLBACK');
@@ -181,7 +182,7 @@ export class GameService {
         io.in(roomId).emit('game_state', { players: [...players.values()] });
 
         if ([...gameState.players.values()].every((it) => it.isReady)) {
-            // startGame(roomId);
+            io.in(roomId).emit('round_start', { round: gameState.round });
         }
     }
 
@@ -202,24 +203,7 @@ export class GameService {
 
         // Если оба игрока сходили
         if (moves.every(Boolean)) {
-            if (game.moveTimeout) {
-                clearTimeout(game.moveTimeout); // ⛔ Останавливаем таймер
-                delete game.moveTimeout;
-            }
             return this.finishRound(io, roomId, game);
-        }
-
-        // Если только один сходил, запускаем таймер, если он ещё не запущен
-        if (!game.moveTimeout) {
-            game.moveTimeout = setTimeout(() => {
-                for (const p of allPlayers) {
-                    if (!p.selectedCard) {
-                        p.selectedCard = this.randomMove();
-                    }
-                }
-
-                this.finishRound(io, roomId, game);
-            }, 10_000); // 10 секунд
         }
     }
 
@@ -234,6 +218,7 @@ export class GameService {
             await client.query('BEGIN');
 
             await RoomService.leaveRoom(roomId, userId, client);
+            await RoomService.changeCreatorIfNeeded(roomId, userId, client);
             const isRoomEmpty = await RoomService.isRoomEmpty(roomId, client);
 
             //Don't delete
@@ -264,7 +249,7 @@ export class GameService {
     }
 
     private static finishRound(io: Server, roomId: string, game: GameState) {
-        const [p1, p2] = Array.from(game.players.values());
+        const [p1, p2] = [...game.players.values()];
         const winner = this.getRoundWinner(p1.selectedCard!, p2.selectedCard!);
         const [firstUserId, secondUserId] = [p1.user.id, p2.user.id];
 
@@ -289,7 +274,6 @@ export class GameService {
             delete p.selectedCard;
         }
 
-        delete game.moveTimeout;
         game.round++;
 
         if (game.round > game.maxRounds) {
@@ -346,26 +330,4 @@ export class GameService {
 
         games.set(roomId, state);
     }
-
-    // function startGame(roomId: string) {
-    //     const sockets = io.sockets.adapter.rooms.get(roomId);
-    //     if (!sockets || sockets.size !== 2) return;
-    //
-    //     const players: Record<string, PlayerState> = {};
-    //     for (const socketId of sockets) {
-    //         const sock = io.sockets.sockets.get(socketId);
-    //         if (sock?.data.userId) {
-    //             players[sock.data.userId] = { roundsWon: 0 };
-    //         }
-    //     }
-    //
-    //     const game: GameState = {
-    //         players,
-    //         round: 1,
-    //         maxRounds: 5,
-    //     };
-    //
-    //     games.set(roomId, game);
-    //     io.in(roomId).emit('round_start', { round: game.round });
-    // }
 }
