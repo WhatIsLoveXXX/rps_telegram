@@ -1,10 +1,10 @@
 import { User, UserStats } from '../../user/model/user';
 import { Queryable } from '../../config/types';
 import db from '../../config/db';
-import { GameResult } from '../gameResult'; // путь подстрой под себя
+import { GameResult } from '../gameResult';
 
 export class GameHistoryService {
-    static async getStatsForUser(userId: number, client: Queryable = db): Promise<UserStats> {
+    static async getStatsForUserPerMonth(userId: number, client: Queryable = db): Promise<UserStats> {
         try {
             const query = `
                 SELECT COUNT(*) FILTER (WHERE result = 1) AS wins, COUNT(*) FILTER (WHERE result = 0) AS losses, COUNT(*) FILTER (WHERE result = 3) AS draws,
@@ -49,7 +49,6 @@ export class GameHistoryService {
         `;
 
         const result = await client.query(query, [limit]);
-
         return result.rows.map(User.fromRow);
     }
 

@@ -5,6 +5,7 @@ import { TransactionService } from '../../ton-payments/transactionService';
 import { TransactionEnum } from '../../ton-payments/transactionType';
 import { Queryable } from '../../config/types';
 import { GameHistoryService } from '../../game/service/gameHistoryService';
+import { UserStatsService } from './userStatsService';
 
 export class UserService {
     static async createUser(id: number, username: string, firstName: string, lastName: string, photoUrl: string): Promise<User> {
@@ -33,7 +34,7 @@ export class UserService {
         const user = User.fromRow(row);
 
         if (withStats) {
-            user.stats = await GameHistoryService.getStatsForUser(id, client);
+            user.stats = await UserStatsService.getUserStats(id, client);
         }
 
         return user;

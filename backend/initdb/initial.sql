@@ -47,3 +47,12 @@ CREATE TABLE game_history (
                               result smallint NOT NULL,
                               created_at TIMESTAMP DEFAULT now()
 );
+
+CREATE TABLE user_stats (
+                            user_id INT PRIMARY KEY,
+                            wins INT DEFAULT 0,
+                            losses INT DEFAULT 0,
+                            draws INT DEFAULT 0,
+                            profit NUMERIC(10, 2) DEFAULT 0,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

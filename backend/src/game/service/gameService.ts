@@ -7,6 +7,7 @@ import { DisconnectReason, Server, Socket } from 'socket.io';
 import { Card, GameState, PlayerState } from '../types';
 import { User } from '../../user/model/user';
 import { GameHistoryService } from './gameHistoryService';
+import { UserStatsService } from '../../user/service/userStatsService';
 
 export class GameService {
     private static readonly MAX_RETRIES = 3;
@@ -134,26 +135,25 @@ export class GameService {
             if (gameState) {
                 if (!gameState.gameOver && gameState.gameInProgress) {
                     const player = gameState.players.get(userId.toString())!;
-                    player.isConnected = false; // Устанавливаем флаг
+                    player.isConnected = false;
                     console.log(`Player ${userId} marked as disconnected.`);
 
                     const remainingPlayers = [...gameState.players.values()].filter((player) => player.isConnected); // Оставшиеся активные игроки
 
                     if (remainingPlayers.length === 1) {
-                        // Если остался только один активный игрок, он выигрывает
-                        const winnerId = remainingPlayers[0].user.id;
+                        const gameWinner = remainingPlayers[0].user.id;
                         console.log(`Player ${winnerId} wins because the opponent disconnected.`);
 
-                        // Вызываем processGameResult, передаем оставшегося игрока как победителя
-                        await this.processGameResult(io, winnerId, roomId);
+                        gameState.gameOver = true;
+                        io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
 
-                        gameState.gameOver = true; // Завершаем игру
+                        await this.processGameResult(io, gameWinner, roomId);
                     } else {
+                        gameState.players.delete(userId.toString());
+                        console.log('User ${userId} removed from gameState');
+                        io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
                     }
                 }
-                gameState.players.delete(userId.toString());
-                console.log('User ${userId} removed from gameState');
-                io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
             }
             if (isRoomEmpty) {
                 this.games.delete(roomId);
@@ -188,7 +188,6 @@ export class GameService {
             game.gameOver = true;
             io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
             await this.processGameResult(io, gameWinner, roomId);
-            // TODO: clear game state and users
         } else {
             io.in(roomId).emit('round_result', {
                 roundWinner: roundWinner === 0 ? null : roundWinner === 1 ? firstUserId : secondUserId,
@@ -244,7 +243,6 @@ export class GameService {
                 const { betAmount, players } = await this.getRoomAndPlayers(roomId, client);
                 const balancesMap = await this.getAndUpdateBalances(players, client);
 
-                // Проверяем баланс игроков
                 this.ensureSufficientBalance(players, balancesMap, betAmount);
 
                 if (winnerId === null) {
@@ -253,15 +251,12 @@ export class GameService {
                     await this.processWinnerAndLoser(winnerId, players, betAmount, client);
                 }
 
-                // await RoomService.deleteRoom(roomId, client);
-
                 if (winnerId !== null) {
                     this.updateInMemoryBalances(winnerId, players, betAmount);
                 }
 
                 await client.query('COMMIT');
 
-                // Сбрасываем игровые состояния и удаляем игроков
                 await this.resetGameStatesAndRemoveLowBalancePlayers(io, betAmount);
             } catch (err) {
                 await client.query('ROLLBACK');
@@ -271,7 +266,6 @@ export class GameService {
                     throw new Error('Game processing failed after multiple attempts');
                 }
 
-                // Задержка перед следующей попыткой
                 await new Promise((res) => setTimeout(res, 200));
             } finally {
                 client.release();
@@ -320,6 +314,7 @@ export class GameService {
     private static async saveDrawHistory(players: any[], betAmount: number, client: any): Promise<void> {
         for (const player of players) {
             await GameHistoryService.saveGameHistory(player.id, betAmount, GameResult.DRAW, client);
+            await UserStatsService.updateUserStats(player.id, betAmount, GameResult.DRAW, client);
         }
     }
 
@@ -331,6 +326,9 @@ export class GameService {
 
         await GameHistoryService.saveGameHistory(winnerId, betAmount, GameResult.WIN, client);
         await GameHistoryService.saveGameHistory(loser.id, betAmount, GameResult.LOSE, client);
+
+        await UserStatsService.updateUserStats(winnerId, betAmount, GameResult.WIN, client);
+        await UserStatsService.updateUserStats(loser.id, betAmount, GameResult.LOSE, client);
     }
 
     private static updateInMemoryBalances(winnerId: number, players: any[], betAmount: number): void {
@@ -370,26 +368,20 @@ export class GameService {
         games.set(roomId, state);
     }
 
-    private static async resetGameStatesAndRemoveLowBalancePlayers(io: Server, betAmount: number): Promise<void> {
+    private static async resetGameStatesAndRemoveLowBalancePlayers(): Promise<void> {
         this.games.forEach((gameState, roomId) => {
             const updatedPlayers = new Map<string, PlayerState>();
 
             gameState.players.forEach((playerState, userId) => {
-                // Игрок может быть в игре, т.к. хватает баланса
-                updatedPlayers.set(userId, {
-                    user: { ...playerState.user },
-                    roundsWon: 0,
-                    selectedCard: undefined,
-                    isReady: false,
-                    isConnected: playerState.isConnected,
-                });
-                // } else {
-                //     const socket = io.sockets.sockets.get(userId); // Получаем сокет игрока
-                //     if (socket) {
-                //         socket.emit('error', 'Недостаточно баланса для участия в игре');
-                //         socket.leave(roomId); // Игрок покидает комнату
-                //     }
-                // }
+                if (playerState.isConnected) {
+                    updatedPlayers.set(userId, {
+                        user: { ...playerState.user },
+                        roundsWon: 0,
+                        selectedCard: undefined,
+                        isReady: false,
+                        isConnected: true,
+                    });
+                }
             });
 
             this.games.set(roomId, {
