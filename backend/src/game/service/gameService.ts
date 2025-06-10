@@ -117,48 +117,6 @@ export class GameService {
             const gameState = this.games.get(roomId);
 
             if (gameState) io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
-
-            if (clientSize === 2) {
-                // Подготовка к игре — 2 игрока подключились
-                const readyUsers = new Set<string>();
-
-                // const timer = setTimeout(async () => {
-                //     const state = gamePreparationState.get(roomId);
-                //     if (!state) return;
-                //
-                //     const roomSockets = io.sockets.adapter.rooms.get(roomId.toString());
-                //     if (!roomSockets) return;
-                //
-                //     for (const socketId of roomSockets) {
-                //         const sock = io.sockets.sockets.get(socketId);
-                //         if (!sock) continue;
-                //
-                //         const userId = sock.data.userId;
-                //         if (!state.readyUsers.has(userId)) {
-                //             sock.emit('kicked', 'You were not ready in time');
-                //             sock.leave(roomId.toString());
-                //
-                //             const kickClient = await db.connect();
-                //             try {
-                //                 await kickClient.query('BEGIN');
-                //                 await RoomService.leaveRoom(roomId, userId, kickClient);
-                //                 const isRoomEmpty = await RoomService.isRoomEmpty(roomId, kickClient);
-                //                 if (isRoomEmpty && roomId !== '7be9fec6-e9b1-4764-910c-f4215e34e431') {
-                //                     await RoomService.deleteRoom(roomId, kickClient);
-                //                 }
-                //                 await kickClient.query('COMMIT');
-                //             } catch (err) {
-                //                 await kickClient.query('ROLLBACK');
-                //                 console.error('Error kicking user:', err);
-                //             } finally {
-                //                 kickClient.release();
-                //             }
-                //         }
-                //     }
-                //
-                //     gamePreparationState.delete(roomId);
-                // }, 10_000);
-            }
         } catch (error) {
             await client.query('ROLLBACK');
             console.error(error);
@@ -180,9 +138,11 @@ export class GameService {
         }
 
         io.in(roomId).emit('game_state', { players: [...players.values()] });
-
-        if ([...gameState.players.values()].every((it) => it.isReady)) {
-            io.in(roomId).emit('round_start', { round: gameState.round });
+        const playersValues = [...players.values()];
+        const isFullRoom = playersValues.length === 2;
+        if (isFullRoom && playersValues.every((it) => it.isReady)) {
+            console.log('setUserReady trigger round_start', gameState.round);
+            io.in(roomId).emit('round_start', { round: gameState.round, players: [...players.values()] });
         }
     }
 
@@ -191,17 +151,20 @@ export class GameService {
         if (!game) return;
 
         const player = game.players.get(userId.toString());
+
         //Надо понять, когда происходит event, когда мы кликнули по карте или же таймер исяк
-        if (!player || player.selectedCard) return; // чтобы не перезаписывал
+        if (!player) return; // чтобы не перезаписывал
 
         player.selectedCard = selectedCard;
 
-        socket.to(roomId).emit('opponent_moved', { userId });
+        // socket.to(roomId).emit('opponent_moved', { userId });
 
         const allPlayers = Array.from(game.players.values());
         const moves = allPlayers.map((p) => p.selectedCard);
-
+        console.log('moves', moves);
+        // console.log('allPlayers', allPlayers);
         // Если оба игрока сходили
+        console.log('Провалились в finishRound', moves.every(Boolean));
         if (moves.every(Boolean)) {
             return this.finishRound(io, roomId, game);
         }
@@ -250,53 +213,58 @@ export class GameService {
 
     private static finishRound(io: Server, roomId: string, game: GameState) {
         const [p1, p2] = [...game.players.values()];
-        const winner = this.getRoundWinner(p1.selectedCard!, p2.selectedCard!);
+        const roundWinner = this.getRoundWinner(p1.selectedCard!, p2.selectedCard!);
         const [firstUserId, secondUserId] = [p1.user.id, p2.user.id];
 
-        if (winner === 1) p1.roundsWon++;
-        else if (winner === 2) p2.roundsWon++;
+        let gameWinner: number | undefined = undefined;
 
-        io.in(roomId).emit('round_result', {
-            round: game.round,
-            cards: {
-                [firstUserId]: p1.selectedCard,
-                [secondUserId]: p2.selectedCard,
-            },
-            scores: {
-                [firstUserId]: p1.roundsWon,
-                [secondUserId]: p2.roundsWon,
-            },
-            winner: winner === 0 ? null : winner === 1 ? firstUserId : secondUserId,
-        });
+        if (roundWinner === 1) p1.roundsWon++;
+        else if (roundWinner === 2) p2.roundsWon++;
 
-        // Очистка
-        for (const p of Object.values(game.players)) {
-            delete p.selectedCard;
+        for (const player of game.players.values()) {
+            if (player.roundsWon === 3) {
+                gameWinner = player.user.id;
+                break;
+            }
         }
 
-        game.round++;
+        if (gameWinner) {
+            io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
 
-        if (game.round > game.maxRounds) {
-            // const finalScores = Object.values(game.players).map(p => ({ userId: p.userId, score: p.roundsWon }));
-            // const maxScore = Math.max(...finalScores.map(s => s.score));
-            // const finalScores = [] as any;
-            // const maxScore = 0;
-            // const winners = finalScores
-            //     .filter((s) => s.roundsWon === maxScore)
-            //     .map((s) => s.userId);
-
-            // io.in(roomId).emit('game_over', { winners, finalScores });
-            this.games.delete(roomId);
+            // TODO: clear game state and users
         } else {
-            setTimeout(() => {
-                io.in(roomId).emit('round_start', { round: game.round });
-            }, 3000);
-        }
-    }
+            io.in(roomId).emit('round_result', {
+                roundWinner: roundWinner === 0 ? null : roundWinner === 1 ? firstUserId : secondUserId,
+                players: [...game.players.values()],
+                shouldShowOpponentCard: true,
+                showWinnerModal: true,
+            });
 
-    private static randomMove(): Card {
-        const moves: Card[] = ['rock', 'paper', 'scissors'];
-        return moves[Math.floor(Math.random() * moves.length)];
+            // Очистка карт
+            for (const p of game.players.values()) {
+                delete p.selectedCard;
+            }
+            // increase round
+            game.round++;
+            if (game.round > game.maxRounds) {
+                const gameWinner = p1.roundsWon > p2.roundsWon ? p1.user.id : p2.roundsWon > p1.roundsWon ? p2.user.id : null;
+
+                io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
+                // TODO: clear game state and users
+            } else {
+                console.log('should trigger round_start', !(game.round > game.maxRounds));
+                setTimeout(() => {
+                    console.log('finishRound trigger round_start', game.round);
+                    io.in(roomId).emit('round_start', {
+                        round: game.round,
+                        players: [...game.players.values()],
+                        shouldShowOpponentCard: false,
+                        roundWinner: undefined,
+                        showWinnerModal: false,
+                    });
+                }, 3000);
+            }
+        }
     }
 
     private static getRoundWinner(p1: Card, p2: Card): 0 | 1 | 2 {

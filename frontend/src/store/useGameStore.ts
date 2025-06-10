@@ -1,12 +1,7 @@
 import { create } from "zustand";
+import { ROUND_TIME } from "./consts";
 
 export type Card = "rock" | "paper" | "scissors";
-
-export type RoundResult = {
-  selfCard: Card;
-  opponentCard: Card;
-  winner: "self" | "opponent" | "draw";
-};
 
 export interface PlayerState {
   user: {
@@ -28,19 +23,24 @@ interface GameState {
   timeLeft: number;
   self: PlayerState;
   opponent: PlayerState;
-  result?: RoundResult;
   gameOver: boolean;
+  roundWinner?: number | null;
+  gameWinner?: number | null;
+  gameStarted: boolean;
+  shouldShowOpponentCard: boolean;
+  showWinnerModal?: boolean;
 }
 
 interface GameStore extends GameState {
   setGameState: (state: Partial<GameState>) => void;
-  selectCard: (card: Card) => void;
+  selectSelfCard: (card: Card | undefined) => void;
+  resetOpponentCard: () => void;
   resetGame: () => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   round: 1,
-  timeLeft: 20,
+  timeLeft: ROUND_TIME,
   players: [],
   self: {
     user: {
@@ -68,23 +68,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
     isReady: false,
     selectedCard: undefined,
   },
-  result: undefined,
   gameOver: false,
+  roundWinner: undefined,
+  gameStarted: false,
+  shouldShowOpponentCard: false,
+  showWinnerModal: false,
 
   setGameState: (state) => set((prev) => ({ ...prev, ...state })),
-  selectCard: (card) => {
+  selectSelfCard: (card) => {
     set((state) => ({
       self: { ...state.self, selectedCard: card },
+    }));
+  },
+  resetOpponentCard: () => {
+    set((state) => ({
+      opponent: { ...state.opponent, selectedCard: undefined },
     }));
   },
   resetGame: () =>
     set((state) => ({
       ...state,
       round: 1,
-      timeLeft: 20,
-      result: undefined,
+      timeLeft: ROUND_TIME,
       gameOver: false,
       self: { ...state.self, selectedCard: undefined, roundsWon: 0 },
       opponent: { ...state.opponent, selectedCard: undefined, roundsWon: 0 },
+      gameStarted: false,
     })),
 }));

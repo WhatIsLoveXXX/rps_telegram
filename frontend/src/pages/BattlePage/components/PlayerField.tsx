@@ -1,51 +1,45 @@
 import { useGameStore } from "@/store/useGameStore";
 import { socket } from "@/utils/socket-config";
-import "./CardStyles.css"; // для стилей карт, можно кастомизировать
 import { useParams } from "react-router-dom";
 import clsx from "clsx";
+import { SelfInfo } from "./SelfInfo";
+import { motion } from "framer-motion";
+import { cards, cardsImages } from "../consts";
+import { CardType } from "../types";
 
 export const PlayerField = () => {
-  const { self, round, gameOver, selectCard, setGameState } = useGameStore();
-  const { roomId } = useParams<{ roomId: string }>();
+  const { self, gameOver, selectSelfCard, gameStarted } = useGameStore();
 
-  const handleClick = (card: "rock" | "paper" | "scissors") => {
-    if (self.selectedCard || gameOver) return;
-
-    selectCard(card);
-    socket.emit("select_card", { card });
+  const handleClick = (card: CardType) => {
+    if (gameOver) return;
+    console.log("selectedCard", card);
+    selectSelfCard(card);
   };
 
-  const cards: ("rock" | "paper" | "scissors")[] = [
-    "rock",
-    "paper",
-    "scissors",
-  ];
-
   return (
-    <div className="flex justify-center gap-4 mt-8">
-      <img className="w-6 h-6" src={self.user.photoUrl} alt="self" />
-
-      {cards.map((card) => (
-        <button
-          key={card}
-          onClick={() => handleClick(card)}
-          className={`card ${self.selectedCard === card ? "selected" : ""}`}
-        >
-          {card}
-        </button>
-      ))}
-      <button
-        onClick={() => {
-          socket.emit("user_ready", { roomId, userId: self.user.id });
-          setGameState({ self: { ...self, isReady: true } });
-        }}
-        className={clsx(
-          "bg-[#1B73DD] px-3 hover:bg-[#1B73DD]/80 text-white font-medium py-2 rounded-lg transition",
-          self.isReady ? "bg-green-500" : "bg-red-500"
-        )}
-      >
-        Ready
-      </button>
+    <div className="">
+      {gameStarted && (
+        <div className="flex justify-center gap-4 mt-8">
+          {cards.map((card) => (
+            <motion.button
+              key={card}
+              onClick={() => handleClick(card)}
+              initial={false}
+              animate={{
+                y: self.selectedCard === card ? -20 : 0,
+                scale: self.selectedCard === card ? 1.05 : 1,
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className={clsx(
+                "w-18 h-28 bg-white rounded-lg text-black shadow-md transition-colors duration-200"
+              )}
+            >
+              {cardsImages[card]}
+            </motion.button>
+          ))}
+        </div>
+      )}
+      <SelfInfo />
     </div>
   );
 };

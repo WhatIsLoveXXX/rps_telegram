@@ -1,7 +1,5 @@
 import { FC, useState } from "react";
 import { Page } from "@/components/Page.tsx";
-import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
-import UserInfo from "@/components/UserInfo/UserInfo.tsx";
 import { CreateBattleModal } from "./components/CreateBattleModal/CreateBattleModal";
 import { useNavigate } from "react-router-dom";
 
