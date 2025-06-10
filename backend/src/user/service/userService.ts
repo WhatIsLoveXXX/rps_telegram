@@ -7,10 +7,10 @@ import { Queryable } from '../../config/types';
 import { GameHistoryService } from '../../game/service/gameHistoryService';
 
 export class UserService {
-    static async createUser(id: number, firstName: string, lastName: string, photoUrl: string): Promise<User> {
+    static async createUser(id: number, username: string, firstName: string, lastName: string, photoUrl: string): Promise<User> {
         const result = await db.query(
-            'INSERT INTO users (id, first_name, last_name, photo_url) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING returning *',
-            [id, firstName, lastName, photoUrl]
+            'INSERT INTO users (id, username, first_name, last_name, photo_url) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING returning *',
+            [id, username, firstName, lastName, photoUrl]
         );
         return User.fromRow(result.rows[0]);
     }
@@ -20,7 +20,7 @@ export class UserService {
         return result.rows[0].count > 0;
     }
 
-    static async getUserById(id: number, client: Queryable = db, withStats = false): Promise<User | null> {
+    static async getUserById(id: number, withStats = false, client: Queryable = db): Promise<User | null> {
         const query = `
             SELECT id, first_name, last_name, photo_url, balance, wallet
             FROM users

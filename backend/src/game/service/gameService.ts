@@ -13,69 +13,6 @@ export class GameService {
 
     private static games = new Map<string, GameState>();
 
-    static async processGameResult(
-        user1Id: string,
-        user2Id: string,
-        betAmount: number,
-        winnerId: string | null,
-        roomId: number
-    ): Promise<void> {
-        for (let attempt = 1; attempt <= GameService.MAX_RETRIES; attempt++) {
-            const client = await db.connect();
-            try {
-                await client.query('BEGIN');
-
-                const users = await client.query('SELECT id, balance FROM users WHERE id IN ($1, $2) FOR UPDATE', [user1Id, user2Id]);
-
-                const userMap = Object.fromEntries(users.rows.map((u) => [u.id, u]));
-                const user1 = userMap[user1Id];
-                const user2 = userMap[user2Id];
-
-                if (user1.balance < betAmount || user2.balance < betAmount) {
-                    throw new Error('One or both users have insufficient balance');
-                }
-
-                if (winnerId === null) {
-                    await client.query(
-                        `INSERT INTO game_history (user_id, bet, result) VALUES
-             ($1, $3, $2),
-             ($4, $3, $2)`,
-                        [user1Id, GameResult.DRAW, betAmount, user2Id]
-                    );
-                } else {
-                    const loserId = winnerId === user1Id ? user2Id : user1Id;
-
-                    await BalanceService.deductBalance(client, betAmount, loserId);
-                    await BalanceService.addBalance(client, betAmount, winnerId);
-
-                    // Запись истории
-                    await client.query(
-                        `INSERT INTO game_history (user_id, bet, result) VALUES
-             ($1, $3, $2),
-             ($4, $3, $5)`,
-                        [winnerId, GameResult.WIN, betAmount, loserId, GameResult.LOSE]
-                    );
-                }
-
-                await RoomService.deleteRoom(roomId, client);
-
-                await client.query('COMMIT');
-                return;
-            } catch (err) {
-                await client.query('ROLLBACK');
-                console.error(`Transaction failed (attempt ${attempt}):`, err);
-
-                if (attempt === GameService.MAX_RETRIES) {
-                    throw new Error('Game processing failed after multiple attempts');
-                }
-
-                await new Promise((res) => setTimeout(res, 200));
-            } finally {
-                client.release();
-            }
-        }
-    }
-
     static async connectUser(io: Server, socket: Socket, roomId: string, userId: number): Promise<void> {
         const client = await db.connect();
         try {
@@ -88,7 +25,7 @@ export class GameService {
                 return;
             }
 
-            const user = await UserService.getUserById(userId, client, true);
+            const user = await UserService.getUserById(userId, true, client);
             if (!user) {
                 socket.emit('error', 'User not found');
                 await client.query('ROLLBACK');
@@ -113,7 +50,6 @@ export class GameService {
 
             socket.join(roomId.toString());
 
-            const clientSize = io.sockets.adapter.rooms.get(roomId.toString())?.size || 0;
             const gameState = this.games.get(roomId);
 
             if (gameState) io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
@@ -126,7 +62,7 @@ export class GameService {
         }
     }
 
-    static async setUserReady(io: Server, socket: Socket, roomId: string, userId: number): Promise<void> {
+    static async setUserReady(io: Server, roomId: string, userId: number): Promise<void> {
         const gameState = this.games.get(roomId);
         if (!gameState) return;
         const players = gameState.players;
@@ -141,6 +77,7 @@ export class GameService {
         const playersValues = [...players.values()];
         const isFullRoom = playersValues.length === 2;
         if (isFullRoom && playersValues.every((it) => it.isReady)) {
+            gameState.gameInProgress = true;
             console.log('setUserReady trigger round_start', gameState.round);
             io.in(roomId).emit('round_start', { round: gameState.round, players: [...players.values()] });
         }
@@ -195,6 +132,25 @@ export class GameService {
             console.log(`User ${userId} removed from room ${roomId} (reason: ${reason})`);
             const gameState = this.games.get(roomId);
             if (gameState) {
+                if (!gameState.gameOver && gameState.gameInProgress) {
+                    const player = gameState.players.get(userId.toString())!;
+                    player.isConnected = false; // Устанавливаем флаг
+                    console.log(`Player ${userId} marked as disconnected.`);
+
+                    const remainingPlayers = [...gameState.players.values()].filter((player) => player.isConnected); // Оставшиеся активные игроки
+
+                    if (remainingPlayers.length === 1) {
+                        // Если остался только один активный игрок, он выигрывает
+                        const winnerId = remainingPlayers[0].user.id;
+                        console.log(`Player ${winnerId} wins because the opponent disconnected.`);
+
+                        // Вызываем processGameResult, передаем оставшегося игрока как победителя
+                        await this.processGameResult(io, winnerId, roomId);
+
+                        gameState.gameOver = true; // Завершаем игру
+                    } else {
+                    }
+                }
                 gameState.players.delete(userId.toString());
                 console.log('User ${userId} removed from gameState');
                 io.in(roomId).emit('game_state', { players: [...gameState.players.values()] });
@@ -211,7 +167,7 @@ export class GameService {
         }
     }
 
-    private static finishRound(io: Server, roomId: string, game: GameState) {
+    private static async finishRound(io: Server, roomId: string, game: GameState) {
         const [p1, p2] = [...game.players.values()];
         const roundWinner = this.getRoundWinner(p1.selectedCard!, p2.selectedCard!);
         const [firstUserId, secondUserId] = [p1.user.id, p2.user.id];
@@ -229,8 +185,9 @@ export class GameService {
         }
 
         if (gameWinner) {
+            game.gameOver = true;
             io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
-
+            await this.processGameResult(io, gameWinner, roomId);
             // TODO: clear game state and users
         } else {
             io.in(roomId).emit('round_result', {
@@ -249,7 +206,9 @@ export class GameService {
             if (game.round > game.maxRounds) {
                 const gameWinner = p1.roundsWon > p2.roundsWon ? p1.user.id : p2.roundsWon > p1.roundsWon ? p2.user.id : null;
 
+                game.gameOver = true;
                 io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
+                await this.processGameResult(io, gameWinner, roomId);
                 // TODO: clear game state and users
             } else {
                 console.log('should trigger round_start', !(game.round > game.maxRounds));
@@ -275,6 +234,115 @@ export class GameService {
         return 2;
     }
 
+    private static async processGameResult(io: Server, winnerId: number | null, roomId: string): Promise<void> {
+        for (let attempt = 1; attempt <= GameService.MAX_RETRIES; attempt++) {
+            const client = await db.connect();
+
+            try {
+                await client.query('BEGIN');
+
+                const { betAmount, players } = await this.getRoomAndPlayers(roomId, client);
+                const balancesMap = await this.getAndUpdateBalances(players, client);
+
+                // Проверяем баланс игроков
+                this.ensureSufficientBalance(players, balancesMap, betAmount);
+
+                if (winnerId === null) {
+                    await this.saveDrawHistory(players, betAmount, client);
+                } else {
+                    await this.processWinnerAndLoser(winnerId, players, betAmount, client);
+                }
+
+                // await RoomService.deleteRoom(roomId, client);
+
+                if (winnerId !== null) {
+                    this.updateInMemoryBalances(winnerId, players, betAmount);
+                }
+
+                await client.query('COMMIT');
+
+                // Сбрасываем игровые состояния и удаляем игроков
+                await this.resetGameStatesAndRemoveLowBalancePlayers(io, betAmount);
+            } catch (err) {
+                await client.query('ROLLBACK');
+                console.error(`Transaction failed (attempt ${attempt}):`, err);
+
+                if (attempt === GameService.MAX_RETRIES) {
+                    throw new Error('Game processing failed after multiple attempts');
+                }
+
+                // Задержка перед следующей попыткой
+                await new Promise((res) => setTimeout(res, 200));
+            } finally {
+                client.release();
+            }
+        }
+    }
+
+    private static async getRoomAndPlayers(roomId: string, client: any): Promise<{ betAmount: number; players: any[] }> {
+        const room = await RoomService.getRoomById(roomId, client);
+        if (!room) {
+            throw new Error('Room not found');
+        }
+
+        const currentGame = this.games.get(roomId);
+        if (!currentGame) {
+            throw new Error('Game not found in active games');
+        }
+
+        const players = [...currentGame.players.values()].map((playerState) => playerState.user);
+        if (players.length !== 2) {
+            throw new Error('Game must have exactly 2 players');
+        }
+
+        return { betAmount: room.bet, players };
+    }
+
+    private static async getAndUpdateBalances(players: any[], client: any): Promise<Record<number, number>> {
+        const playerIds = players.map((player) => player.id);
+        const balancesMap = await BalanceService.getUserBalances(playerIds, client);
+
+        players.forEach((player) => {
+            player.balance = balancesMap[player.id];
+        });
+
+        return balancesMap;
+    }
+
+    private static ensureSufficientBalance(players: any[], balancesMap: Record<number, number>, betAmount: number): void {
+        players.forEach((player) => {
+            if (balancesMap[player.id] < betAmount) {
+                throw new Error('One or both users have insufficient balance');
+            }
+        });
+    }
+
+    private static async saveDrawHistory(players: any[], betAmount: number, client: any): Promise<void> {
+        for (const player of players) {
+            await GameHistoryService.saveGameHistory(player.id, betAmount, GameResult.DRAW, client);
+        }
+    }
+
+    private static async processWinnerAndLoser(winnerId: number, players: any[], betAmount: number, client: any): Promise<void> {
+        const loser = players.find((player) => player.id !== winnerId);
+
+        await BalanceService.deductBalance(client, betAmount, loser.id);
+        await BalanceService.addBalance(client, betAmount, winnerId);
+
+        await GameHistoryService.saveGameHistory(winnerId, betAmount, GameResult.WIN, client);
+        await GameHistoryService.saveGameHistory(loser.id, betAmount, GameResult.LOSE, client);
+    }
+
+    private static updateInMemoryBalances(winnerId: number, players: any[], betAmount: number): void {
+        const loser = players.find((player) => player.id !== winnerId);
+        const winner = players.find((player) => player.id === winnerId);
+
+        loser.balance -= betAmount;
+        winner.balance += betAmount;
+
+        console.log(`Updated in-memory balances. Winner: ${winnerId}, Loser: ${loser.id}`);
+    }
+
     private static addUserToPlayerState(games: Map<string, GameState>, roomId: string, user: User) {
         const game = games.get(roomId);
         if (!game) return;
@@ -283,6 +351,7 @@ export class GameService {
             user,
             roundsWon: 0,
             isReady: false,
+            isConnected: true,
         });
     }
 
@@ -294,8 +363,42 @@ export class GameService {
             players: new Map<string, PlayerState>(),
             round: 1,
             maxRounds: 5,
+            gameOver: false,
+            gameInProgress: false,
         };
 
         games.set(roomId, state);
+    }
+
+    private static async resetGameStatesAndRemoveLowBalancePlayers(io: Server, betAmount: number): Promise<void> {
+        this.games.forEach((gameState, roomId) => {
+            const updatedPlayers = new Map<string, PlayerState>();
+
+            gameState.players.forEach((playerState, userId) => {
+                // Игрок может быть в игре, т.к. хватает баланса
+                updatedPlayers.set(userId, {
+                    user: { ...playerState.user },
+                    roundsWon: 0,
+                    selectedCard: undefined,
+                    isReady: false,
+                    isConnected: playerState.isConnected,
+                });
+                // } else {
+                //     const socket = io.sockets.sockets.get(userId); // Получаем сокет игрока
+                //     if (socket) {
+                //         socket.emit('error', 'Недостаточно баланса для участия в игре');
+                //         socket.leave(roomId); // Игрок покидает комнату
+                //     }
+                // }
+            });
+
+            this.games.set(roomId, {
+                players: updatedPlayers,
+                round: 1,
+                maxRounds: gameState.maxRounds,
+                gameOver: false,
+                gameInProgress: false,
+            });
+        });
     }
 }

@@ -13,7 +13,7 @@ export function registerGameHandlers(io: Server, socket: Socket) {
     });
 
     socket.on(SocketAction.USER_READY, async ({ roomId, userId }) => {
-        await GameService.setUserReady(io, socket, roomId, userId);
+        await GameService.setUserReady(io, roomId, userId);
     });
 
     socket.on(SocketAction.MAKE_MOVE, async ({ roomId, userId, selectedCard }: { roomId: string; userId: number; selectedCard: Card }) => {

@@ -9,7 +9,7 @@ export class RoomService {
         try {
             await client.query('BEGIN');
 
-            const user = await UserService.getUserById(userId, client);
+            const user = await UserService.getUserById(userId, false, client);
             if (!user) {
                 throw new Error('User not found');
             }
@@ -18,7 +18,7 @@ export class RoomService {
                 throw new Error('Insufficient balance');
             }
 
-            const result = await client.query(`INSERT INTO rooms (betAmount, creator_id) VALUES ($1, $2) RETURNING id`, [
+            const result = await client.query(`INSERT INTO rooms (bet_amount, creator_id) VALUES ($1, $2) RETURNING id`, [
                 betAmount,
                 userId,
             ]);
@@ -33,13 +33,13 @@ export class RoomService {
         }
     }
 
-    static async findOpenRooms(options?: { creatorId?: number; betMin?: number; betMax?: number }): Promise<Room[]> {
+    static async findOpenRooms(options?: { creatorUsername?: string; betMin?: number; betMax?: number }): Promise<any[]> {
         const params: any[] = [];
         let whereClauses: string[] = [];
 
-        if (options?.creatorId != null) {
-            params.push(options.creatorId);
-            whereClauses.push(`r.creator_id = $${params.length}`);
+        if (options?.creatorUsername != null) {
+            params.push(options.creatorUsername);
+            whereClauses.push(`u.username = $${params.length}`);
         }
 
         if (options?.betMin != null) {
@@ -55,17 +55,33 @@ export class RoomService {
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         const query = `
-            SELECT r.* FROM rooms r
-                                JOIN room_users ru ON r.id = ru.room_id
+            SELECT
+                r.id,
+                r.creator_id,
+                r.bet_amount,
+                r.created_at,
+                u.username AS creator_username,
+                u.photo_url AS creator_photo_url
+            FROM rooms r
+                     JOIN users u ON r.creator_id = u.id
+                     JOIN room_users ru ON r.id = ru.room_id
                 ${whereSql}
-            GROUP BY r.id
+            GROUP BY r.id, u.username, u.photo_url
             HAVING COUNT(ru.user_id) = 1
             ORDER BY r.created_at DESC
                 LIMIT 50
         `;
 
         const result = await db.query(query, params);
-        return result.rows.map(Room.fromRow);
+
+        return result.rows.map((row) => ({
+            id: row.id,
+            creatorId: row.creator_id,
+            betAmount: row.bet_amount,
+            createdAt: row.created_at,
+            creatorUsername: row.creator_username,
+            creatorPhotoUrl: row.creator_photo_url,
+        }));
     }
 
     static async joinRoom(roomId: string, userId: number, client: Queryable = db): Promise<void> {
@@ -101,7 +117,7 @@ export class RoomService {
         return Room.fromRow(result.rows[0]);
     }
 
-    static async deleteRoom(roomId: number, client: Queryable = db): Promise<void> {
+    static async deleteRoom(roomId: string, client: Queryable = db): Promise<void> {
         try {
             await client.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
         } catch (err) {

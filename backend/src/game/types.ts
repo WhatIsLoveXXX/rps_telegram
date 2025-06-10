@@ -7,11 +7,13 @@ export interface PlayerState {
     roundsWon: number;
     selectedCard?: Card;
     isReady: boolean;
+    isConnected: boolean;
 }
 
 export interface GameState {
     players: Map<string, PlayerState>; // userId -> state
     round: number;
     maxRounds: number;
-    moveTimeout?: NodeJS.Timeout;
+    gameOver: boolean;
+    gameInProgress: boolean;
 }

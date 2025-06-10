@@ -17,10 +17,12 @@ export class RoomController {
 
     static async findOpenRooms(req: Request, res: Response) {
         try {
-            const { creatorId, betMin, betMax } = req.query;
+            const { betMin, betMax } = req.query;
+            const creatorUsernameParam = req.query.creatorUsername;
+            const creatorUsername: string | undefined = typeof creatorUsernameParam === 'string' ? creatorUsernameParam : undefined;
 
             const rooms = await RoomService.findOpenRooms({
-                creatorId: betMin ? Number(creatorId) : undefined,
+                creatorUsername: creatorUsername,
                 betMin: betMin ? Number(betMin) : undefined,
                 betMax: betMax ? Number(betMax) : undefined,
             });

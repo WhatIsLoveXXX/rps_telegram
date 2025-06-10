@@ -1,5 +1,6 @@
 export class User {
     id: number;
+    username: string;
     firstName: string;
     lastName: string;
     photoUrl: string;
@@ -9,6 +10,7 @@ export class User {
 
     constructor(
         id: number,
+        username: string,
         firstName: string,
         lastName: string,
         photoUrl: string,
@@ -17,6 +19,7 @@ export class User {
         stats: UserStats | null = null
     ) {
         this.id = id;
+        this.username = username;
         this.firstName = firstName;
         this.lastName = lastName;
         this.photoUrl = photoUrl;
@@ -26,7 +29,7 @@ export class User {
     }
 
     static fromRow(row: any): User {
-        return new User(Number(row.id), row.first_name, row.last_name, row.photo_url, Number(row.balance), row.wallet, null);
+        return new User(Number(row.id), row.username, row.first_name, row.last_name, row.photo_url, Number(row.balance), row.wallet, null);
     }
 }
 

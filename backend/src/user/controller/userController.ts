@@ -20,6 +20,7 @@ export class UserController {
         const firstName = user.first_name;
         const lastName = user.last_name;
         const photoUrl = user.photo_url;
+        const username = user.username;
 
         const isUserExists = await UserService.isExist(userId);
 
@@ -28,7 +29,7 @@ export class UserController {
         }
 
         try {
-            const user = await UserService.createUser(userId, firstName, lastName, photoUrl);
+            const user = await UserService.createUser(userId, username, firstName, lastName, photoUrl);
             return res.status(201).json({ message: 'User created from Telegram', user });
         } catch (err) {
             console.error('Failed to create user:', err);
@@ -66,7 +67,7 @@ export class UserController {
         const userId = res.locals.initData?.user?.id;
 
         try {
-            const user = await UserService.getUserById(userId);
+            const user = await UserService.getUserById(userId, true);
             if (!user) return res.status(404).json({ error: 'User not found' });
             return res.json(user);
         } catch (err) {
