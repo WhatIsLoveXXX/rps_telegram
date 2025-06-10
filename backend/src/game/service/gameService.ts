@@ -142,10 +142,10 @@ export class GameService {
 
                     if (remainingPlayers.length === 1) {
                         const gameWinner = remainingPlayers[0].user.id;
-                        console.log(`Player ${winnerId} wins because the opponent disconnected.`);
+                        console.log(`Player ${gameWinner} wins because the opponent disconnected.`);
 
                         gameState.gameOver = true;
-                        io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
+                        io.in(roomId).emit('game_over', { gameWinner, players: [...gameState.players.values()], gameOver: true });
 
                         await this.processGameResult(io, gameWinner, roomId);
                     } else {
@@ -257,7 +257,7 @@ export class GameService {
 
                 await client.query('COMMIT');
 
-                await this.resetGameStatesAndRemoveLowBalancePlayers(io, betAmount);
+                await this.resetGameStatesAndRemoveLowBalancePlayers();
             } catch (err) {
                 await client.query('ROLLBACK');
                 console.error(`Transaction failed (attempt ${attempt}):`, err);
