@@ -10,9 +10,9 @@ export const authorize = async () => {
   }
 };
 
-export const getUsers = async () => {
+export const getUser = async (userId?: number) => {
   try {
-    const response = await api.get("/users");
+    const response = await api.get(`/users/${userId}`);
     return response.data;
   } catch (error) {
     throw new Error(`Error fetching`);

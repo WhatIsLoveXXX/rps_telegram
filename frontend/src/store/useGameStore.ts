@@ -3,6 +3,12 @@ import { ROUND_TIME } from "./consts";
 
 export type Card = "rock" | "paper" | "scissors";
 
+interface Stats {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
 export interface PlayerState {
   user: {
     balance: number;
@@ -11,6 +17,7 @@ export interface PlayerState {
     lastName: string;
     photoUrl: string;
     wallet: string | null;
+    stats: Stats;
   };
   selectedCard?: Card;
   roundsWon: number;
@@ -50,6 +57,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastName: "",
       photoUrl: "",
       wallet: null,
+      stats: {
+        wins: 0,
+        losses: 0,
+        draws: 0,
+      },
     },
     roundsWon: 0,
     isReady: false,
@@ -63,6 +75,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastName: "",
       photoUrl: "",
       wallet: null,
+      stats: {
+        wins: 0,
+        losses: 0,
+        draws: 0,
+      },
     },
     roundsWon: 0,
     isReady: false,
@@ -92,7 +109,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timeLeft: ROUND_TIME,
       gameOver: false,
       self: { ...state.self, selectedCard: undefined, roundsWon: 0 },
-      opponent: { ...state.opponent, selectedCard: undefined, roundsWon: 0 },
+      opponent: {
+        selectedCard: undefined,
+        roundsWon: 0,
+        isReady: false,
+        user: {
+          id: 0,
+          balance: 0,
+          firstName: "",
+          lastName: "",
+          photoUrl: "",
+          wallet: null,
+          stats: {
+            wins: 0,
+            losses: 0,
+            draws: 0,
+          },
+        },
+      },
       gameStarted: false,
     })),
 }));

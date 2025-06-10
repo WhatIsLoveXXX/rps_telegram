@@ -11,7 +11,7 @@ export const createRoom = async (betAmount: number) => {
 
 export const getOpenRooms = async () => {
   try {
-    const response = await api.get("/rooms/open", {});
+    const response = await api.get("/rooms/open");
     return response.data;
   } catch (error) {
     throw new Error(`Error fetching open rooms`);
