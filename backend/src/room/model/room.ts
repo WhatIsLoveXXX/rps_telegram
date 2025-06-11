@@ -12,6 +12,6 @@ export class Room {
     }
 
     static fromRow(row: any): Room {
-        return new Room(row.id, parseFloat(row.bet), Number(row.creator_id), Date.parse(row.createdAt).toString());
+        return new Room(row.id, parseFloat(row.bet_amount), Number(row.creator_id), Date.parse(row.createdAt).toString());
     }
 }

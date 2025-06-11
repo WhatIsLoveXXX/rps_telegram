@@ -4,10 +4,7 @@ import { Queryable } from '../../config/types';
 export class BalanceService {
     static async deductBalance(client: PoolClient, amount: number, userId: number): Promise<number> {
         try {
-            const result = await client.query(`UPDATE users set balance = balance - $1 WHERE user_id = $2 returning balance`, [
-                amount,
-                userId,
-            ]);
+            const result = await client.query(`UPDATE users set balance = balance - $1 WHERE id = $2 returning balance`, [amount, userId]);
             return parseFloat(result.rows[0].balance);
         } catch (err) {
             console.error('Error in deductBalance:', err);
@@ -17,10 +14,7 @@ export class BalanceService {
 
     static async addBalance(client: PoolClient, amount: number, userId: number): Promise<number> {
         try {
-            const result = await client.query(`UPDATE users SET balance = balance + $1 WHERE user_id = $2 returning balance`, [
-                amount,
-                userId,
-            ]);
+            const result = await client.query(`UPDATE users SET balance = balance + $1 WHERE id = $2 returning balance`, [amount, userId]);
             return parseFloat(result.rows[0].balance);
         } catch (err) {
             console.error('Error in addBalance:', err);

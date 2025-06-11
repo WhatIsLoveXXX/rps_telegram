@@ -208,7 +208,6 @@ export class GameService {
                 game.gameOver = true;
                 io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
                 await this.processGameResult(io, gameWinner, roomId);
-                // TODO: clear game state and users
             } else {
                 console.log('should trigger round_start', !(game.round > game.maxRounds));
                 setTimeout(() => {
@@ -258,6 +257,8 @@ export class GameService {
                 await client.query('COMMIT');
 
                 await this.resetGameStatesAndRemoveLowBalancePlayers();
+
+                return;
             } catch (err) {
                 await client.query('ROLLBACK');
                 console.error(`Transaction failed (attempt ${attempt}):`, err);
