@@ -15,5 +15,5 @@ export interface GameState {
     round: number;
     maxRounds: number;
     gameOver: boolean;
-    gameInProgress: boolean;
+    gameStarted: boolean;
 }

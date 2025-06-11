@@ -4,6 +4,7 @@ import { MainPage } from "@/pages/MainPage/MainPage";
 import { LeaderBoard } from "@/pages/LeaderBoard/LeaderBoard";
 import { UserProfile } from "@/pages/UserProfile/UserProfile";
 import { BattlePage } from "@/pages/BattlePage/BattlePage";
+import { WithdrawPage } from "@/pages/WithdrawPage/WithdrawPage";
 
 interface Route {
   path: string;
@@ -17,4 +18,5 @@ export const routes: Route[] = [
   { path: "/leaderboard", Component: LeaderBoard },
   { path: "/user-profile", Component: UserProfile },
   { path: "/battle/:roomId", Component: BattlePage },
+  { path: "/withdraw", Component: WithdrawPage },
 ];

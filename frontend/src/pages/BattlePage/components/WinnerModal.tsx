@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 
 interface WinnerModalProps {
   isOpen: boolean;
-  onClose: () => void;
 }
 
 // Вынесенный компонент для карточки с анимацией
@@ -57,10 +56,7 @@ const CardView = ({
   </motion.div>
 );
 
-export const WinnerModal: React.FC<WinnerModalProps> = ({
-  isOpen,
-  onClose,
-}) => {
+export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen }) => {
   const { self, opponent, roundWinner } = useGameStore();
   const selfId = self.user?.id;
   const opponentId = opponent?.user?.id;
@@ -134,7 +130,7 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen}>
       <div className="flex flex-col items-center">
         <h2 className="text-2xl font-bold mb-6">{title}</h2>
         <div className="relative w-[220px] h-[180px] flex items-center justify-center">

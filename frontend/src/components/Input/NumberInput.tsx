@@ -1,14 +1,18 @@
 import { FC } from "react";
 import clsx from "clsx";
+import { NumericFormat, NumericFormatProps } from "react-number-format";
 
-interface InputProps {
-  value: string;
-  onChange: (value: string) => void;
+type InputProps = Omit<
+  NumericFormatProps,
+  "onValueChange" | "value" | "onChange"
+> & {
+  value: number | undefined;
+  onChange: (value: number) => void;
   placeholder?: string;
   className?: string;
-}
+};
 
-export const Input: FC<InputProps> = ({
+export const NumberInput: FC<InputProps> = ({
   value,
   onChange,
   placeholder,
@@ -16,15 +20,20 @@ export const Input: FC<InputProps> = ({
   ...props
 }) => {
   return (
-    <input
-      type="text"
+    <NumericFormat
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onValueChange={(values) => {
+        if (values.floatValue !== undefined) {
+          onChange(values.floatValue);
+        }
+      }}
       placeholder={placeholder}
       className={clsx(
         "w-full text-[12px] block px-4 py-1 mb-4 bg-[#191919] border border-[#313030] rounded-lg placeholder:text-[#4A4A4A] text-white focus:outline-none focus:ring-2 focus:ring-[#1B73DD]",
         className
       )}
+      allowNegative={false}
+      decimalScale={0}
       {...props}
     />
   );

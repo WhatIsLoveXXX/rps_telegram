@@ -78,7 +78,7 @@ export class GameService {
         const playersValues = [...players.values()];
         const isFullRoom = playersValues.length === 2;
         if (isFullRoom && playersValues.every((it) => it.isReady)) {
-            gameState.gameInProgress = true;
+            gameState.gameStarted = true;
             console.log('setUserReady trigger round_start', gameState.round);
             io.in(roomId).emit('round_start', { round: gameState.round, players: [...players.values()] });
         }
@@ -87,6 +87,13 @@ export class GameService {
     static async makeMovement(io: Server, socket: Socket, roomId: string, userId: number, selectedCard: Card): Promise<void> {
         const game = this.games.get(roomId);
         if (!game) return;
+
+        const allPlayers = Array.from(game.players.values());
+
+        if (allPlayers.length !== 2) {
+            console.log('Not enough players to make a move');
+            return;
+        }
 
         const player = game.players.get(userId.toString());
 
@@ -97,7 +104,6 @@ export class GameService {
 
         // socket.to(roomId).emit('opponent_moved', { userId });
 
-        const allPlayers = Array.from(game.players.values());
         const moves = allPlayers.map((p) => p.selectedCard);
         console.log('moves', moves);
         // console.log('allPlayers', allPlayers);
@@ -133,7 +139,7 @@ export class GameService {
             console.log(`User ${userId} removed from room ${roomId} (reason: ${reason})`);
             const gameState = this.games.get(roomId);
             if (gameState) {
-                if (!gameState.gameOver && gameState.gameInProgress) {
+                if (!gameState.gameOver && gameState.gameStarted) {
                     const player = gameState.players.get(userId.toString())!;
                     player.isConnected = false;
                     console.log(`Player ${userId} marked as disconnected.`);
@@ -145,7 +151,13 @@ export class GameService {
                         console.log(`Player ${gameWinner} wins because the opponent disconnected.`);
 
                         gameState.gameOver = true;
-                        io.in(roomId).emit('game_over', { gameWinner, players: [...gameState.players.values()], gameOver: true });
+                        gameState.gameStarted = false;
+                        io.in(roomId).emit('game_over', {
+                            gameWinner,
+                            players: remainingPlayers,
+                            gameOver: gameState.gameOver,
+                            gameStarted: false,
+                        });
 
                         await this.processGameResult(io, gameWinner, roomId);
                     } else {
@@ -186,7 +198,8 @@ export class GameService {
 
         if (gameWinner) {
             game.gameOver = true;
-            io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
+            game.gameStarted = false;
+            io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true, gameStarted: false });
             await this.processGameResult(io, gameWinner, roomId);
         } else {
             io.in(roomId).emit('round_result', {
@@ -206,7 +219,8 @@ export class GameService {
                 const gameWinner = p1.roundsWon > p2.roundsWon ? p1.user.id : p2.roundsWon > p1.roundsWon ? p2.user.id : null;
 
                 game.gameOver = true;
-                io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true });
+                game.gameStarted = false;
+                io.in(roomId).emit('game_over', { gameWinner, players: [...game.players.values()], gameOver: true, gameStarted: false });
                 await this.processGameResult(io, gameWinner, roomId);
             } else {
                 console.log('should trigger round_start', !(game.round > game.maxRounds));
@@ -363,7 +377,7 @@ export class GameService {
             round: 1,
             maxRounds: 5,
             gameOver: false,
-            gameInProgress: false,
+            gameStarted: false,
         };
 
         games.set(roomId, state);
@@ -390,7 +404,7 @@ export class GameService {
                 round: 1,
                 maxRounds: gameState.maxRounds,
                 gameOver: false,
-                gameInProgress: false,
+                gameStarted: false,
             });
         });
     }

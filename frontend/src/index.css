@@ -28,3 +28,16 @@ html {
     #021b8c 93.4%
   );
 }
+
+#ton-connect-button button {
+  background: #1b73dd;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+
+#ton-connect-button svg {
+  display: none;
+}

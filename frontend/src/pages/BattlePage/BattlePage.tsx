@@ -69,9 +69,24 @@ export const BattlePage = () => {
       }
     );
 
-    socket.on("game_over", (state) => {
-      setGameState({ ...state, gameOver: true });
-    });
+    socket.on(
+      "game_over",
+      (state: {
+        gameWinner: number | null;
+        players: PlayerState[];
+        gameOver: boolean;
+      }) => {
+        const players: PlayerState[] = state.players;
+        const { selfPlayer, opponentPlayer } = splitPlayers(players, user.id);
+
+        if (!selfPlayer) {
+          console.warn("Current user is not found in players");
+          return;
+        }
+        console.log("game_over", state);
+        setGameState({ ...state, self: selfPlayer, opponent: opponentPlayer });
+      }
+    );
 
     return () => {
       socket.off("game_state");
@@ -130,7 +145,7 @@ export const BattlePage = () => {
   return (
     <>
       <GameField />
-      <WinnerModal isOpen={showWinnerModal || false} onClose={() => {}} />
+      <WinnerModal isOpen={showWinnerModal || false} />
     </>
   );
 };

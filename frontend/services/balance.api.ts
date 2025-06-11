@@ -1,8 +1,16 @@
 import { api } from "./api";
 
-export const topUpBalance = async (amount: number, boc: string) => {
+export const topUpBalance = async (
+  amount: number,
+  boc: string,
+  senderAddress: string
+) => {
   try {
-    const response = await api.post("/users/balance/topUp", { amount, boc });
+    const response = await api.post("/users/balance/topUp", {
+      amount,
+      boc,
+      senderAddress,
+    });
     return response.data;
   } catch (error) {
     throw new Error(`Error top up`);

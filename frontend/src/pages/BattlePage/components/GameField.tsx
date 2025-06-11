@@ -1,6 +1,7 @@
 import { OpponentField } from "./OpponentField";
 import { PlayerField } from "./PlayerField";
 import { useGameStore } from "@/store/useGameStore";
+import gameBackground from "@/assets/game-background.svg";
 import clsx from "clsx";
 
 export const GameField = () => {
@@ -17,6 +18,11 @@ export const GameField = () => {
           : "justify-end"
       )}
     >
+      <img
+        src={gameBackground}
+        alt="bg"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[100vw_+_100px] h-screen"
+      />
       {gameStarted && (
         <div className="text-sm font-semibold mb-4">Round {round} of 5</div>
       )}

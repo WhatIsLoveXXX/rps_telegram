@@ -1,16 +1,11 @@
 import { FC, useEffect, useState } from "react";
 import { Page } from "@/components/Page.tsx";
 import { getUser } from "../../../services/users.api";
-import {
-  TonConnectButton,
-  useTonAddress,
-  useTonConnectUI,
-  useTonWallet,
-} from "@tonconnect/ui-react";
-import { topUpBalance, withdrawBalance } from "../../../services/balance.api";
-import { prepareTransaction } from "@/utils/transactions/prepareTransaction";
+import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
 import { useTelegramUser } from "@/hooks/useTelegramUser";
 import { Button } from "@/components/Button/Button";
+import { TopUpWalletModal } from "./components/TopUpWalletModal";
+import { useNavigate } from "react-router-dom";
 
 interface UserInfo {
   balance: number;
@@ -31,23 +26,8 @@ export const UserProfile: FC = () => {
   const [userInfo, setUserInfo] = useState<UserInfo | undefined>(undefined);
   const user = useTelegramUser();
   const wallet = useTonWallet();
-  const [tonConnectUI] = useTonConnectUI();
-  const [withdrawAmount, setWithdrawAmount] = useState(0);
-  const [topUpAmount, setTopUpAmount] = useState(0);
-  const userFriendlyAddress = useTonAddress();
-
-  const handleTopUp = async () => {
-    const transaction = prepareTransaction(
-      topUpAmount,
-      user?.username || "No username provided"
-    );
-    try {
-      const transactionStatus = await tonConnectUI.sendTransaction(transaction);
-      await topUpBalance(topUpAmount, transactionStatus.boc);
-    } catch (e) {
-      console.log(e);
-    }
-  };
+  const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -55,7 +35,6 @@ export const UserProfile: FC = () => {
     const fetchUser = async () => {
       const data = await getUser(user?.id);
       setUserInfo(data);
-      console.log("data", data);
     };
 
     fetchUser();
@@ -109,10 +88,21 @@ export const UserProfile: FC = () => {
           </div>
 
           <div className="flex gap-2 self-end">
-            <Button className="h-[30px]" onClick={handleTopUp}>
+            <Button
+              className="h-[30px]"
+              onClick={() => {
+                setIsTopUpModalOpen(true);
+              }}
+            >
               Top up wallet
             </Button>
-            <Button className="h-[30px]" onClick={() => {}} variant="secondary">
+            <Button
+              className="h-[30px]"
+              onClick={() => {
+                navigate("/withdraw");
+              }}
+              variant="secondary"
+            >
               Cash out
             </Button>
           </div>
@@ -141,6 +131,10 @@ export const UserProfile: FC = () => {
           Withdraw
         </button>
       </div> */}
+      <TopUpWalletModal
+        isOpen={isTopUpModalOpen}
+        onClose={() => setIsTopUpModalOpen(false)}
+      />
     </Page>
   );
 };
