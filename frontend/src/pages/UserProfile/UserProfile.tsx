@@ -6,6 +6,8 @@ import { useTelegramUser } from "@/hooks/useTelegramUser";
 import { Button } from "@/components/Button/Button";
 import { TopUpWalletModal } from "./components/TopUpWalletModal";
 import { useNavigate } from "react-router-dom";
+import { withdrawBalance } from '../../../services/balance.api.ts';
+import { NumberInput } from '@/components/Input/NumberInput.tsx';
 
 interface UserInfo {
   balance: number;
@@ -28,6 +30,7 @@ export const UserProfile: FC = () => {
   const wallet = useTonWallet();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const navigate = useNavigate();
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -108,29 +111,12 @@ export const UserProfile: FC = () => {
           </div>
         </div>
       </div>
-
-      {/* <div>
-        <input
-          type="number"
-          placeholder="Top up amount"
-          className="bg-white text-black"
-          value={topUpAmount}
-          onChange={(e) => setTopUpAmount(Number(e.target.value))}
-        />
-        <button onClick={async () => await handleTopUp()}>Top up</button>
-      </div>
       <div>
-        <input
-          type="number"
-          placeholder="Withdraw amount"
-          className="bg-white text-black"
-          value={withdrawAmount}
-          onChange={(e) => setWithdrawAmount(Number(e.target.value))}
-        />
+        <NumberInput value={withdrawAmount} onChange={(value) => setWithdrawAmount(Number(value))}/>
         <button onClick={async () => await withdrawBalance(withdrawAmount)}>
           Withdraw
         </button>
-      </div> */}
+      </div>
       <TopUpWalletModal
         isOpen={isTopUpModalOpen}
         onClose={() => setIsTopUpModalOpen(false)}

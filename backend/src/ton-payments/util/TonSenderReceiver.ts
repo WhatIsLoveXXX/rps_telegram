@@ -2,7 +2,6 @@ import { mnemonicToWalletKey } from 'ton-crypto';
 import {
     Address,
     Cell,
-    Transaction,
     comment,
     internal,
     OpenedContract,
@@ -12,8 +11,11 @@ import {
     WalletContractV4,
     beginCell,
     storeMessage,
+    TransactionDescription,
+    TransactionActionPhase,
 } from 'ton';
 import dotenv from 'dotenv';
+import { CustomerNotEnoughFunds, TransactionNotFoundError } from '../../constants/errors';
 
 dotenv.config();
 
@@ -25,6 +27,9 @@ const client = new TonClient({
     endpoint: TON_API_ENDPOINT,
     apiKey: TON_API_KEY,
 });
+
+const maxRetries = 5;
+const delayMs = 4000;
 
 async function waitForSeqnoChange(
     contract: OpenedContract<WalletContractV4>,
@@ -40,7 +45,7 @@ async function waitForSeqnoChange(
         const elapsed = Date.now() - start;
 
         if (elapsed > timeout) {
-            throw new Error('⏰ Timeout: Транзакция не подтвердилась за отведённое время.');
+            throw new TransactionNotFoundError();
         }
 
         const currentSeqno = await contract.getSeqno();
@@ -59,40 +64,7 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function getTransactionByMessageHash(client: TonClient, address: Address, desiredMessageHash: string): Promise<Transaction> {
-    const maxRetries = 5;
-    const delayMs = 2000;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        const limit = attempt * 20;
-        console.log(`🔁 Attempt ${attempt}, checking last ${limit} transactions...`);
-
-        const txs = await client.getTransactions(address, { limit });
-
-        const tx = txs.find((tx) => {
-            try {
-                const inMsgHash = tx.inMessage?.body?.hash?.().toString('hex');
-                return inMsgHash === desiredMessageHash;
-            } catch {
-                return false;
-            }
-        });
-
-        if (tx) {
-            console.log('✅ Transaction found!');
-            return tx;
-        }
-
-        if (attempt < maxRetries) {
-            console.log(`⏳ Not found, retrying in ${delayMs / 1000} seconds...`);
-            await sleep(delayMs);
-        }
-    }
-
-    throw new Error('❌ Transaction not found after all retries.');
-}
-
-export async function sendTon(wallet_address: string, amount: number) {
+export async function sendTon(receiverAddress: string, amount: number) {
     const mnemonic = SECRET_WALLET_WORDS.split(' ');
     const { publicKey, secretKey } = await mnemonicToWalletKey(mnemonic);
     const wallet = WalletContractV4.create({ workchain: 0, publicKey });
@@ -102,19 +74,17 @@ export async function sendTon(wallet_address: string, amount: number) {
     const [seqNo, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
 
     if (balance < amountNano) {
-        throw new Error('❌ Not enough funds to transfer.');
+        throw new CustomerNotEnoughFunds();
     }
 
     const transfer = contract.createTransfer({
         seqno: seqNo,
         secretKey,
-        messages: [internal({ to: wallet_address, value: amountNano, body: comment('💸 From API') })],
+        messages: [internal({ to: receiverAddress, value: amountNano, body: comment('💸 From API') })],
         sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS,
     });
 
-    const boc = transfer.toBoc();
-    const cell = Cell.fromBoc(boc)[0];
-    const messageHash = cell.hash().toString('hex');
+    const messageHash = Cell.fromBoc(transfer.toBoc())[0].hash().toString('hex');
 
     await contract.send(transfer);
 
@@ -124,73 +94,93 @@ export async function sendTon(wallet_address: string, amount: number) {
 
     console.log('✅ Transaction confirmed. Receiving details...');
 
-    return await getTransactionByMessageHash(client, contract.address, messageHash);
+    const { transaction, isSuccess } = await getTransactionByMessageHash(contract.address, messageHash);
+    return { transaction, isSuccess, messageHash };
 }
 
-export async function findTransactionByHashWithWait(
-    walletAddress: string,
-    boc: string,
-    timeout: number = 30_000,
-    interval: number = 5_000
-) {
-    const address = Address.parse(walletAddress);
-    /*
-    const hashToFind = Cell.fromBoc(Buffer.from(boc, 'base64'))[0].hash().toString('hex');
-    const inHash = beginCell().store(storeMessage(it.inMessage)).endCell().hash().toString('hex');
-    */
+export async function getTransactionByMessageHash(address: Address, desiredMessageHash: string) {
+    return findTransactionWithRetry(client, address, (tx) => {
+        const inMsgHash = tx.inMessage?.body?.hash?.().toString('hex');
+        return inMsgHash === desiredMessageHash;
+    });
+}
 
-    /* Это для получателя только по месседжу
-    const body = beginCell()
-        .storeUint(0, 32) // write 32 zero bits to indicate that a text comment will follow
-        .storeStringTail(`Transaction sent from Mock user name`) // write our text comment
-        .endCell();
-   
-    
-    const payloadBase64 = body.toBoc().toString('base64');
+export async function findTransactionByHashWithWait(senderAddress: string, boc: string) {
+    const address = Address.parse(senderAddress);
 
-    const messageCell = Cell.fromBoc(Buffer.from(payloadBase64, 'base64'))[0];
-    const messageHash = messageCell.hash().toString('hex');
-    */
-    const start = Date.now();
+    return findTransactionWithRetry(client, address, (tx) => {
+        const currentBoc = getMessageBoc(tx.inMessage);
+        return currentBoc === boc;
+    });
+}
 
-    while (true) {
-        const elapsed = Date.now() - start;
-
-        if (elapsed > timeout) {
-            console.warn('⏰ Transaction waiting timeout');
-            return null;
-        }
+async function findTransactionWithRetry(
+    client: TonClient,
+    address: Address,
+    match: (tx: any) => boolean
+): Promise<{ transaction: any | null; isSuccess: boolean }> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const limit = attempt * 10;
+        console.log(`🔁 Attempt ${attempt}, checking last ${limit} transactions...`);
 
         try {
-            const txs = await client.getTransactions(address, { limit: 10 });
+            const txs = await client.getTransactions(address, { limit });
 
-            for (const tx of txs) {
-                if (tx.inMessage) {
-                    const currentBocMessage = beginCell().store(storeMessage(tx.inMessage)).endCell().toBoc().toString('base64');
-                    if (currentBocMessage === boc) {
-                        console.log('✅ Transaction found');
-                        return tx;
-                    }
+            for (const transaction of txs) {
+                if (!transaction.inMessage) continue;
+
+                if (match(transaction)) {
+                    const isSuccess = isTransactionSuccess(transaction.description);
+                    console.log('✅ Transaction found');
+                    return { transaction, isSuccess };
                 }
             }
-
-            /* Это для получателя только по месседжу
-            for (const tx of txs) {
-                if (!tx.inMessage) continue;
-
-                const inMsgBodyHash = tx.inMessage.body.hash().toString('hex');
-
-                if (inMsgBodyHash === messageHash) {
-                    console.log('✅ Транзакция у получателя найдена!');
-                    return tx;
-                }
-            }
-            */
         } catch (err) {
             console.error('❌ Error verifying transaction:', err);
         }
 
-        console.log(`⏳ Waiting for transaction... (${Math.floor(elapsed / 1000)}s)`);
-        await sleep(interval);
+        if (attempt < maxRetries) {
+            console.log(`⏳ Not found, retrying in ${delayMs / 1000} seconds...`);
+            await sleep(delayMs);
+        }
     }
+
+    return { transaction: null, isSuccess: false };
+}
+
+function isTransactionSuccess(description: any): boolean {
+    const { isAborted, actionPhase } = checkAbortedAndAction(description);
+    return isAborted || !actionPhase ? false : actionPhase.success;
+}
+
+function getMessageBoc(message: any): string {
+    return beginCell().store(storeMessage(message)).endCell().toBoc().toString('base64');
+}
+
+function checkAbortedAndAction(description: TransactionDescription): {
+    isAborted?: boolean;
+    actionPhase?: TransactionActionPhase;
+} {
+    let isAborted: boolean | undefined;
+    let actionPhase: TransactionActionPhase | undefined;
+
+    switch (description.type) {
+        case 'generic':
+        case 'tick-tock':
+        case 'split-prepare':
+        case 'merge-install':
+            isAborted = description.aborted;
+
+            if (description.actionPhase) {
+                actionPhase = description.actionPhase;
+            }
+            break;
+        case 'merge-prepare':
+            isAborted = description.aborted;
+            break;
+        case 'storage':
+        case 'split-install':
+            break;
+    }
+    return { isAborted, actionPhase };
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RoomService } from '../service/roomService';
+import { CouldntFetchRooms, InsufficientBalanceError, InternalServiceError } from '../../constants/errors';
 
 export class RoomController {
     static async createRoom(req: Request, res: Response) {
@@ -11,7 +12,12 @@ export class RoomController {
             res.status(201).json({ roomId: room.id });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: 'Could not create Room' });
+
+            if (error instanceof InsufficientBalanceError) {
+                return res.status(400).json({ message: error.message });
+            }
+
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 
@@ -30,25 +36,12 @@ export class RoomController {
             res.json(rooms);
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: 'Could not fetch Rooms' });
-        }
-    }
 
-    static async joinRoom(req: Request, res: Response) {
-        const userId = res.locals.initData?.user?.id;
-        const { roomId } = req.body;
+            if (error instanceof CouldntFetchRooms) {
+                return res.status(400).json({ message: error.message });
+            }
 
-        if (!roomId) {
-            return res.status(400).json({ error: 'Invalid or missing roomId' });
-        }
-
-        try {
-            await RoomService.joinRoom(roomId, userId);
-            res.json({ message: 'Joined Room', roomId });
-        } catch (error: any) {
-            console.error(error);
-            const status = error.message === 'Room is full' ? 400 : 500;
-            res.status(status).json({ error: error.message || 'Could not join Room' });
+            res.status(500).json({ message: new InternalServiceError().message });
         }
     }
 }

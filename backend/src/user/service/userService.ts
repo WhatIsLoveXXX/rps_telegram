@@ -2,10 +2,11 @@ import db from '../../config/db';
 import { User } from '../model/user';
 import { findTransactionByHashWithWait, sendTon } from '../../ton-payments/util/TonSenderReceiver';
 import { TransactionService } from '../../ton-payments/transactionService';
-import { TransactionEnum } from '../../ton-payments/transactionType';
 import { Queryable } from '../../config/types';
-import { GameHistoryService } from '../../game/service/gameHistoryService';
 import { UserStatsService } from './userStatsService';
+import { BalanceService } from './balanceService';
+import { TransactionNotFoundError, UserNotFoundError } from '../../constants/errors';
+import { TransactionStatus, TransactionType } from '../../ton-payments/types';
 
 export class UserService {
     static async createUser(id: number, username: string, firstName: string, lastName: string, photoUrl: string): Promise<User> {
@@ -22,22 +23,27 @@ export class UserService {
     }
 
     static async getUserById(id: number, withStats = false, client: Queryable = db): Promise<User | null> {
-        const query = `
-            SELECT id, first_name, last_name, photo_url, balance, wallet
-            FROM users
-            WHERE id = $1
-        `;
-        const res = await client.query(query, [id]);
-        const row = res.rows[0];
-        if (!row) return null;
+        try {
+            const query = `
+                SELECT id, first_name, last_name, photo_url, balance, wallet
+                FROM users
+                WHERE id = $1
+            `;
+            const res = await client.query(query, [id]);
+            const row = res.rows[0];
+            if (!row) return null;
 
-        const user = User.fromRow(row);
+            const user = User.fromRow(row);
 
-        if (withStats) {
-            user.stats = await UserStatsService.getUserStats(id, client);
+            if (withStats) {
+                user.stats = await UserStatsService.getUserStats(id, client);
+            }
+
+            return user;
+        } catch (err) {
+            console.error('Error in getUserById:', err);
+            throw new UserNotFoundError();
         }
-
-        return user;
     }
 
     static async updateWallet(id: number, wallet: string): Promise<void> {
@@ -47,72 +53,100 @@ export class UserService {
         await db.query('UPDATE users SET wallet = $1 WHERE id = $2', [wallet, id]);
     }
 
-    static async topUpBalance(userId: number, amount: number, boc: string): Promise<User | null> {
+    static async topUpBalance(userId: number, amount: number, boc: string, senderAddress: string): Promise<User | null> {
         const client = await db.connect();
+        let shouldInsertPending = false;
         try {
             await client.query('BEGIN');
-            const wallet_address = 'UQDu9MSvI-jLSosK_BsRUjfvIK2G2hCHOTz6ItL_CXrOY4KO';
-            // const wallet_address = 'UQAdIOrlEnwyzZjOne0-PhYvFfybwH21eFeklmSkyggbKrsa';
+            // const wallet_address = 'UQDu9MSvI-jLSosK_BsRUjfvIK2G2hCHOTz6ItL_CXrOY4KO';
+            // const senderAddress = 'UQAdIOrlEnwyzZjOne0-PhYvFfybwH21eFeklmSkyggbKrsa';
 
-            const userResult = await client.query('SELECT balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
+            const user = await UserService.getUserById(userId, false, client);
 
-            if (userResult.rowCount === 0) {
-                await client.query('ROLLBACK');
-                return null;
+            if (!user) {
+                throw new UserNotFoundError();
             }
 
-            const transaction = await findTransactionByHashWithWait(wallet_address, boc);
+            const { transaction, isSuccess } = await findTransactionByHashWithWait(senderAddress, boc);
             if (transaction == null) {
-                await client.query('ROLLBACK');
-                await client.query('INSERT INTO pending_deposits (user_id, boc, amount) VALUES ($1, $2, $3)', [userId, boc, amount]);
-                throw new Error('Transaction not found');
+                shouldInsertPending = true;
+                throw new TransactionNotFoundError();
             }
             const txHash = transaction.hash().toString('hex');
+            const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
-            const result = await client.query('UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING *', [amount, userId]);
+            const updatedUser = isSuccess ? await BalanceService.addBalance(userId, amount, client) : null;
 
-            await TransactionService.createTransaction(client, userId, amount, TransactionEnum.DEPOSIT, txHash);
+            await TransactionService.createTransaction(userId, amount, TransactionType.DEPOSIT, txHash, transactionStatus, client);
 
             await client.query('COMMIT');
-            return User.fromRow(result.rows[0]);
+            return updatedUser;
         } catch (err) {
             await client.query('ROLLBACK');
-            console.log(err);
+            console.error(err);
+
+            if (shouldInsertPending) {
+                try {
+                    await client.query(
+                        'INSERT INTO pending_deposits_withdrawals (user_id, boc, amount, type, wallet_address) VALUES ($1, $2, $3, $4, $5)',
+                        [userId, boc, amount, TransactionType.WITHDRAW, process.env.WALLET_ADDRESS]
+                    );
+                } catch (insertErr) {
+                    console.error('Failed to insert pending withdrawal:', insertErr);
+                }
+            }
+
             throw err;
         } finally {
             client.release();
         }
     }
 
-    static async withdrawBalance(userId: number, amount: number): Promise<User | string> {
+    static async withdrawBalance(userId: number, amount: number, receiverAddress: string): Promise<User | string> {
         const client = await db.connect();
+        let shouldInsertPending = false;
+        let messageHash: string | null = null;
+
         try {
             await client.query('BEGIN');
 
-            const userResult = await client.query('SELECT balance, wallet_address FROM users WHERE id = $1 FOR UPDATE', [userId]);
-
-            if (userResult.rowCount === 0) {
-                await client.query('ROLLBACK');
-                return 'User not found';
+            const userResult = await UserService.getUserById(userId, false, client);
+            if (!userResult) {
+                throw new UserNotFoundError();
             }
+            // const receiverAddress = 'UQDu9MSvI-jLSosK_BsRUjfvIK2G2hCHOTz6ItL_CXrOY4KO';
 
-            const { balance, wallet_address } = userResult.rows[0];
-            if (balance < amount) {
-                await client.query('ROLLBACK');
-                return 'Insufficient balance';
+            const { transaction, isSuccess, messageHash: hash } = await sendTon(receiverAddress, amount);
+            messageHash = hash;
+
+            if (transaction == null) {
+                shouldInsertPending = true;
+                throw new TransactionNotFoundError();
             }
+            const txHash = transaction.hash().toString('hex');
+            const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
-            const transaction = await sendTon(wallet_address, amount);
-            const txHash = Buffer.from(transaction.hash()).toString('hex');
+            const updatedUser = BalanceService.deductBalance(userId, amount, client);
 
-            const result = await client.query('UPDATE users SET balance = balance - $1 WHERE id = $2 RETURNING *', [amount, userId]);
-
-            await TransactionService.createTransaction(client, userId, amount, TransactionEnum.WITHDRAWAL, txHash);
+            await TransactionService.createTransaction(userId, amount, TransactionType.WITHDRAW, txHash, transactionStatus, client);
 
             await client.query('COMMIT');
-            return User.fromRow(result.rows[0]);
+            return updatedUser;
         } catch (err) {
             await client.query('ROLLBACK');
+            console.error(err);
+
+            if (shouldInsertPending && messageHash) {
+                try {
+                    await client.query(
+                        'INSERT INTO pending_deposits_withdrawals (user_id, boc, amount, type, wallet_address) VALUES ($1, $2, $3, $4, $5)',
+                        [userId, messageHash, amount, TransactionType.WITHDRAW, process.env.WALLET_ADDRESS]
+                    );
+                } catch (insertErr) {
+                    console.error('Failed to insert pending withdrawal:', insertErr);
+                }
+            }
+
             throw err;
         } finally {
             client.release();

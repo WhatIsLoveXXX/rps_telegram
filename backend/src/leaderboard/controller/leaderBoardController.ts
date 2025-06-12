@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { GameHistoryService } from '../../game/service/gameHistoryService';
-import { UserService } from '../../user/service/userService';
+import { InternalServiceError, LeaderBoardError } from '../../constants/errors';
 
 export class LeaderboardController {
     static async getLeaderboard(req: Request, res: Response) {
@@ -8,8 +8,11 @@ export class LeaderboardController {
             const players = await GameHistoryService.getTopUsersForCurrentMonth();
             return res.json(players);
         } catch (err) {
-            console.error('Failed to get leader board:', err);
-            return res.status(401).json({ error: err });
+            if (err instanceof LeaderBoardError) {
+                res.status(400).json({ message: err.message });
+            } else {
+                res.status(500).json({ message: new InternalServiceError().message });
+            }
         }
     }
 }

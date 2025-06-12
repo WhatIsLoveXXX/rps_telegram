@@ -1,20 +1,97 @@
-export enum ErrorCode {
-    USER_NOT_FOUND = 1001,
-    INVALID_WALLET_LENGTH = 1002,
-
-    GAME_RESULT_INVALID_ORDER = 2001,
-
-    TRANSACTION_TIMEOUT = 3001,
-    ERROR_TOP_UP = 3002,
-
-    ERR_NOT_SUPPORTED = 4001,
+export class UserNotFoundError extends Error {
+    constructor(message = 'User not found') {
+        super(message);
+        this.name = 'UserNotFoundError';
+    }
 }
 
-const ErrorMessages: Record<ErrorCode, string> = {
-    [ErrorCode.ERR_NOT_SUPPORTED]: 'This feature is not supported.',
-    [ErrorCode.USER_NOT_FOUND]: 'User not found.',
-    [ErrorCode.INVALID_WALLET_LENGTH]: 'Invalid wallet length.',
-    [ErrorCode.GAME_RESULT_INVALID_ORDER]: 'Invalid order for game result.',
-    [ErrorCode.TRANSACTION_TIMEOUT]: 'Transaction timed out.',
-    [ErrorCode.ERROR_TOP_UP]: 'Error occurred during top up.',
-};
+export class RoomNotFoundError extends Error {
+    constructor(message = 'Room not found') {
+        super(message);
+        this.name = 'RoomNotFoundError';
+    }
+}
+
+export class RoomJoinError extends Error {
+    constructor(message = "Couldn't join to room") {
+        super(message);
+        this.name = 'RoomJoinError';
+    }
+}
+
+export class RoomIsFullError extends Error {
+    constructor(message = 'Room is full') {
+        super(message);
+        this.name = 'RoomIsFull';
+    }
+}
+
+export class CouldntFetchRooms extends Error {
+    constructor(message = 'Could not fetch Rooms') {
+        super(message);
+        this.name = 'CouldntFetchRooms';
+    }
+}
+
+export class InsufficientBalanceError extends Error {
+    constructor(message = 'Insufficient balance') {
+        super(message);
+        this.name = 'InsufficientBalanceError';
+    }
+}
+
+export class TransactionNotFoundError extends Error {
+    constructor(message = 'Transaction not found') {
+        super(message);
+        this.name = 'InsufficientBalanceError';
+    }
+}
+
+export class CustomerNotEnoughFunds extends Error {
+    constructor(message = 'There was an error with the withdraw, please contact the administrator') {
+        super(message);
+        this.name = 'InsufficientBalanceError';
+    }
+}
+
+export class GameBrokenError extends Error {
+    constructor(message = 'Game was broken, please contact the administrator') {
+        super(message);
+        this.name = 'InsufficientBalanceError';
+    }
+}
+
+export class LeaderBoardError extends Error {
+    constructor(message = "Leader board couldn't be displayed now") {
+        super(message);
+        this.name = 'LeaderBoardError';
+    }
+}
+
+export class InternalServiceError extends Error {
+    constructor(message = 'Internal service error') {
+        super(message);
+        this.name = 'InternalServiceError';
+    }
+}
+
+export class UserStatsError extends Error {
+    constructor(message = 'User stats error') {
+        super(message);
+        this.name = 'UserStatsError';
+    }
+}
+
+export class GameHistoryError extends Error {
+    constructor(message = 'Game history error') {
+        super(message);
+        this.name = 'UserStatsError';
+    }
+}
+
+export class BalanceOperationError extends Error {
+    constructor(message = 'Balance operation error') {
+        super(message);
+        this.name = 'BalanceOperationError';
+    }
+}

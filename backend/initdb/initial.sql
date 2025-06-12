@@ -25,16 +25,18 @@ CREATE TABLE transactions (
                               id SERIAL PRIMARY KEY,
                               user_id BIGINT NOT NULL,
                               amount DOUBLE PRECISION NOT NULL,
-                              type smallint NOT NULL, -- 'withdrawal' / 'deposit'
+                              type bit NOT NULL,
                               tx_hash TEXT NOT NULL,
+                              status bit NOT NULL,
                               created_at TIMESTAMP DEFAULT now()
 );
 
-CREATE TABLE pending_deposits (
+CREATE TABLE pending_deposits_withdrawals (
                                   id SERIAL PRIMARY KEY,
                                   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                   boc TEXT NOT NULL,
                                   amount DOUBLE PRECISION NOT NULL,
+                                  type bit NOT NULL, 
                                   retry_count INTEGER DEFAULT 0,
                                   last_attempt_at TIMESTAMP DEFAULT NOW(),
                                   created_at TIMESTAMP DEFAULT NOW()

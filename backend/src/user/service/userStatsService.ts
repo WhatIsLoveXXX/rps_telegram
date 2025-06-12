@@ -1,6 +1,7 @@
 import { UserStats } from '../model/user';
 import db from '../../config/db';
 import { Queryable } from '../../config/types';
+import { UserStatsError } from '../../constants/errors';
 
 export class UserStatsService {
     static async updateUserStats(userId: number, bet: number, result: number, client: Queryable = db): Promise<void> {
@@ -52,7 +53,7 @@ export class UserStatsService {
             await client.query(updateQuery, [userId, userStats.wins, userStats.losses, userStats.draws, userStats.profit]);
         } catch (err) {
             console.error('Error in updateUserStats:', err);
-            throw err;
+            throw new UserStatsError();
         }
     }
 
@@ -74,7 +75,7 @@ export class UserStatsService {
             };
         } catch (err) {
             console.error('Error in getUserStats:', err);
-            throw err;
+            throw new UserStatsError();
         }
     }
 }

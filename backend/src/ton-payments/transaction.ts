@@ -1,19 +1,29 @@
-import { getTransactionByOrder, TransactionEnum } from './transactionType';
+import { TransactionStatus, TransactionType } from './types';
 
 export class Transaction {
     id: number;
     userId: number;
     amount: number;
-    type: TransactionEnum;
+    type: TransactionType;
     txHash: string;
+    status: TransactionStatus;
     createdAt: string;
 
-    constructor(id: number, userId: number, amount: number, type: number, txHash: string, createdAt: string) {
+    constructor(
+        id: number,
+        userId: number,
+        amount: number,
+        type: TransactionType,
+        txHash: string,
+        status: TransactionStatus,
+        createdAt: string
+    ) {
         this.id = id;
         this.userId = userId;
         this.amount = amount;
-        this.type = getTransactionByOrder(type);
+        this.type = type;
         this.txHash = txHash;
+        this.status = status;
         this.createdAt = createdAt;
     }
 
@@ -22,8 +32,9 @@ export class Transaction {
             Number(row.id),
             Number(row.user_id),
             parseFloat(row.amount),
-            getTransactionByOrder(row.type),
+            row.type as TransactionType,
             row.tx_hash,
+            row.status as TransactionStatus,
             row.created_at
         );
     }

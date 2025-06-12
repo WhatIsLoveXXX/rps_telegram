@@ -2,6 +2,7 @@ import db from '../../config/db';
 import { Room } from '../model/room';
 import { UserService } from '../../user/service/userService';
 import { Queryable } from '../../config/types';
+import { CouldntFetchRooms, InsufficientBalanceError, RoomIsFullError, RoomJoinError, UserNotFoundError } from '../../constants/errors';
 
 export class RoomService {
     static async createRoom(userId: number, betAmount: number): Promise<Room> {
@@ -11,11 +12,11 @@ export class RoomService {
 
             const user = await UserService.getUserById(userId, false, client);
             if (!user) {
-                throw new Error('User not found');
+                throw new UserNotFoundError();
             }
 
             if (user.balance < betAmount) {
-                throw new Error('Insufficient balance');
+                throw new InsufficientBalanceError();
             }
 
             const result = await client.query(`INSERT INTO rooms (bet_amount, creator_id) VALUES ($1, $2) RETURNING id`, [
@@ -34,54 +35,58 @@ export class RoomService {
     }
 
     static async findOpenRooms(options?: { creatorUsername?: string; betMin?: number; betMax?: number }): Promise<any[]> {
-        const params: any[] = [];
-        let whereClauses: string[] = [];
+        try {
+            const params: any[] = [];
+            let whereClauses: string[] = [];
 
-        if (options?.creatorUsername != null) {
-            params.push(options.creatorUsername);
-            whereClauses.push(`u.username = $${params.length}`);
+            if (options?.creatorUsername != null) {
+                params.push(options.creatorUsername);
+                whereClauses.push(`u.username = $${params.length}`);
+            }
+
+            if (options?.betMin != null) {
+                params.push(options.betMin);
+                whereClauses.push(`r.bet_amount >= $${params.length}`);
+            }
+
+            if (options?.betMax != null) {
+                params.push(options.betMax);
+                whereClauses.push(`r.bet_amount <= $${params.length}`);
+            }
+
+            const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+            const query = `
+                SELECT r.id,
+                       r.creator_id,
+                       r.bet_amount,
+                       r.created_at,
+                       u.username  AS creator_username,
+                       u.photo_url AS creator_photo_url
+                FROM rooms r
+                         JOIN users u ON r.creator_id = u.id
+                         JOIN room_users ru ON r.id = ru.room_id
+                    ${whereSql}
+                GROUP BY r.id, u.username, u.photo_url
+                HAVING COUNT (ru.user_id) = 1
+                ORDER BY r.created_at DESC
+                    LIMIT 50
+            `;
+
+            const result = await db.query(query, params);
+
+            return result.rows.map((row) => ({
+                id: row.id,
+                creatorId: row.creator_id,
+                betAmount: row.bet_amount,
+                createdAt: row.created_at,
+                creatorUsername: row.creator_username,
+                creatorPhotoUrl: row.creator_photo_url,
+            }));
+        } catch (err) {
+            console.error('Error in findOpenRooms:', err);
+            throw new CouldntFetchRooms();
         }
-
-        if (options?.betMin != null) {
-            params.push(options.betMin);
-            whereClauses.push(`r.bet_amount >= $${params.length}`);
-        }
-
-        if (options?.betMax != null) {
-            params.push(options.betMax);
-            whereClauses.push(`r.bet_amount <= $${params.length}`);
-        }
-
-        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-        const query = `
-            SELECT
-                r.id,
-                r.creator_id,
-                r.bet_amount,
-                r.created_at,
-                u.username AS creator_username,
-                u.photo_url AS creator_photo_url
-            FROM rooms r
-                     JOIN users u ON r.creator_id = u.id
-                     JOIN room_users ru ON r.id = ru.room_id
-                ${whereSql}
-            GROUP BY r.id, u.username, u.photo_url
-            HAVING COUNT(ru.user_id) = 1
-            ORDER BY r.created_at DESC
-                LIMIT 50
-        `;
-
-        const result = await db.query(query, params);
-
-        return result.rows.map((row) => ({
-            id: row.id,
-            creatorId: row.creator_id,
-            betAmount: row.bet_amount,
-            createdAt: row.created_at,
-            creatorUsername: row.creator_username,
-            creatorPhotoUrl: row.creator_photo_url,
-        }));
     }
 
     static async joinRoom(roomId: string, userId: number, client: Queryable = db): Promise<void> {
@@ -89,12 +94,12 @@ export class RoomService {
             const result = await client.query(`SELECT COUNT(*) FROM room_users WHERE room_id = $1`, [roomId]);
 
             if (parseInt(result.rows[0].count, 10) >= 2) {
-                throw new Error('Room is full');
+                throw new RoomIsFullError();
             }
 
             await client.query(`INSERT INTO room_users (room_id, user_id) VALUES ($1, $2)`, [roomId, userId]);
         } catch (err) {
-            throw err;
+            throw new RoomJoinError();
         }
     }
 
@@ -102,7 +107,7 @@ export class RoomService {
         try {
             await client.query(`DELETE FROM room_users WHERE room_id = $1 and user_id = $2`, [roomId, userId]);
         } catch (err) {
-            throw err;
+            throw new Error("User couldn't leave room");
         }
     }
 
@@ -121,7 +126,7 @@ export class RoomService {
         try {
             await client.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
         } catch (err) {
-            throw err;
+            throw new Error("Couldn't delete room");
         }
     }
 
@@ -132,15 +137,30 @@ export class RoomService {
     }
 
     static async changeCreatorIfNeeded(roomId: string, userId: number, client: Queryable = db): Promise<void> {
-        const isCreator = await RoomService.isRoomCreator(roomId, userId, client);
-        if (!isCreator) return;
+        try {
+            const isCreator = await RoomService.isRoomCreator(roomId, userId, client);
+            if (!isCreator) return;
 
-        const res = await client.query(`SELECT user_id FROM room_users WHERE room_id = $1 LIMIT 1`, [roomId]);
+            const res = await client.query(
+                `SELECT user_id
+                                            FROM room_users
+                                            WHERE room_id = $1 LIMIT 1`,
+                [roomId]
+            );
 
-        if (res.rows.length > 0) {
-            const newCreatorId = res.rows[0].user_id;
-            await client.query(`UPDATE rooms SET creator_id = $1 WHERE id = $2`, [newCreatorId, roomId]);
-            console.log(`Room ${roomId}: creator changed to user ${newCreatorId}`);
+            if (res.rows.length > 0) {
+                const newCreatorId = res.rows[0].user_id;
+                await client.query(
+                    `UPDATE rooms
+                                    SET creator_id = $1
+                                    WHERE id = $2`,
+                    [newCreatorId, roomId]
+                );
+                console.log(`Room ${roomId}: creator changed to user ${newCreatorId}`);
+            }
+        } catch (err) {
+            console.error('Error in changeCreatorIfNeeded:', err);
+            throw new Error("Couldn't change creator in the room");
         }
     }
 }

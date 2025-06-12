@@ -19,7 +19,7 @@ export const topUpBalance = async (
 
 export const withdrawBalance = async (amount: number) => {
   try {
-    const response = await api.post("/balance/withdraw", { amount });
+    const response = await api.post("/users/balance/withdraw", { amount });
     return response.data;
   } catch (error) {
     throw new Error(`Error withdrawing`);

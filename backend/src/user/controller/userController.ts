@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { UserService } from '../service/userService';
+import { InsufficientBalanceError, UserNotFoundError } from '../../constants/errors';
 
 /**
  * Controller handling user-related operations such as authorization, wallet updates,
@@ -68,11 +69,13 @@ export class UserController {
 
         try {
             const user = await UserService.getUserById(userId, true);
-            if (!user) return res.status(404).json({ error: 'User not found' });
             return res.json(user);
         } catch (err) {
-            console.error('Failed to get user by ID:', err);
-            return res.status(400).json({ error: 'Failed to get user by ID:', userId });
+            if (err instanceof UserNotFoundError) {
+                return res.status(404).json({ error: err.message });
+            }
+
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
 
@@ -85,18 +88,26 @@ export class UserController {
      */
     static async topUpBalance(req: Request, res: Response) {
         const userId = res.locals.initData?.user?.id;
-        const { amount, boc } = req.body;
+        const { amount, boc, senderAddress } = req.body;
 
         if (!userId || typeof amount !== 'number' || amount <= 0) {
             return res.status(400).json({ error: 'Invalid userId or amount' });
         }
 
         try {
-            const user = await UserService.topUpBalance(userId, amount, boc);
-            if (!user) return res.status(404).json({ error: 'User not found' });
+            const user = await UserService.topUpBalance(userId, amount, boc, senderAddress);
             return res.json({ message: `Balance topped up by ${amount}`, user });
         } catch (err) {
             console.error('Top up error:', err);
+
+            if (err instanceof UserNotFoundError) {
+                return res.status(404).json({ error: err.message });
+            }
+
+            if (err instanceof InsufficientBalanceError) {
+                return res.status(400).json({ error: err.message });
+            }
+
             return res.status(500).json({ error: 'Internal server error' });
         }
     }
@@ -110,17 +121,22 @@ export class UserController {
      */
     static async withdrawBalance(req: Request, res: Response) {
         const userId = res.locals.initData?.user?.id;
-        const { amount } = req.body;
+        const { amount, receiverAddress } = req.body;
 
         try {
-            const result = await UserService.withdrawBalance(userId, amount);
-            if (typeof result === 'string') {
-                return res.status(400).json({ error: result });
-            }
-
-            return res.json({ message: `Balance withdrawn by ${amount}`, user: result });
+            const user = await UserService.withdrawBalance(userId, amount, receiverAddress);
+            return res.json({ message: `Balance withdrawn by ${amount}`, user });
         } catch (err) {
             console.error('Withdraw error:', err);
+
+            if (err instanceof UserNotFoundError) {
+                return res.status(404).json({ error: err.message });
+            }
+
+            if (err instanceof InsufficientBalanceError) {
+                return res.status(400).json({ error: err.message });
+            }
+
             return res.status(500).json({ error: 'Internal server error' });
         }
     }
