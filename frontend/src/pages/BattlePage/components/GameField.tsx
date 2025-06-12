@@ -21,7 +21,7 @@ export const GameField = () => {
       <img
         src={gameBackground}
         alt="bg"
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[100vw_+_100px] h-screen"
+        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
       />
       {gameStarted && (
         <div className="text-sm font-semibold mb-4">Round {round} of 5</div>

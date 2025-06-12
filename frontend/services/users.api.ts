@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { IUser } from "./users.types";
 
 export const authorize = async () => {
   try {
@@ -12,7 +13,7 @@ export const authorize = async () => {
 
 export const getUser = async (userId?: number) => {
   try {
-    const response = await api.get(`/users/${userId}`);
+    const response = await api.get<IUser>(`/users/${userId}`);
     return response.data;
   } catch (error) {
     throw new Error(`Error fetching`);

@@ -1,47 +1,20 @@
-import { FC, useEffect, useState } from "react";
+import { FC, useState } from "react";
 import { Page } from "@/components/Page.tsx";
-import { getUser } from "../../../services/users.api";
 import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
 import { useTelegramUser } from "@/hooks/useTelegramUser";
 import { Button } from "@/components/Button/Button";
 import { TopUpWalletModal } from "./components/TopUpWalletModal";
 import { useNavigate } from "react-router-dom";
-import { withdrawBalance } from '../../../services/balance.api.ts';
-import { NumberInput } from '@/components/Input/NumberInput.tsx';
-
-interface UserInfo {
-  balance: number;
-  firstName: string;
-  id: number;
-  lastName: string;
-  photoUrl: string;
-  stats: {
-    draws: number;
-    losses: number;
-    profit: number;
-    wins: number;
-  };
-  wallet: null;
-}
+import { useUser } from "@/hooks/useUser";
 
 export const UserProfile: FC = () => {
-  const [userInfo, setUserInfo] = useState<UserInfo | undefined>(undefined);
-  const user = useTelegramUser();
+  const { user, isLoading } = useUser();
+  const tgUser = useTelegramUser();
   const wallet = useTonWallet();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const navigate = useNavigate();
-  const [withdrawAmount, setWithdrawAmount] = useState(0);
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchUser = async () => {
-      const data = await getUser(user?.id);
-      setUserInfo(data);
-    };
-
-    fetchUser();
-  }, [user]);
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <Page back={false}>
@@ -72,7 +45,7 @@ export const UserProfile: FC = () => {
             <p className="text-[10px] text-[#B4B9BE] ">Earn:</p>
             <p className="text-[12px] font-semibold text-[#1B73DD]">
               <span className="text-[#B4B9BE] text-[10px] font-[400]">TON</span>{" "}
-              {userInfo?.stats.profit}
+              {user?.stats.profit}
             </p>
           </div>
         </div>
@@ -85,7 +58,7 @@ export const UserProfile: FC = () => {
             <p className="text-[10px] font-semibold text-[#B4B9BE]">
               TON
               <span className="ml-1 text-[12px] text-[#1B73DD] font-semibold">
-                {userInfo?.balance.toLocaleString()}
+                {user?.balance.toLocaleString()}
               </span>
             </p>
           </div>
@@ -110,12 +83,6 @@ export const UserProfile: FC = () => {
             </Button>
           </div>
         </div>
-      </div>
-      <div>
-        <NumberInput value={withdrawAmount} onChange={(value) => setWithdrawAmount(Number(value))}/>
-        <button onClick={async () => await withdrawBalance(withdrawAmount)}>
-          Withdraw
-        </button>
       </div>
       <TopUpWalletModal
         isOpen={isTopUpModalOpen}

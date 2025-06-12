@@ -7,7 +7,7 @@ type InputProps = Omit<
   "onValueChange" | "value" | "onChange"
 > & {
   value: number | undefined;
-  onChange: (value: number) => void;
+  onChange: (value: number | undefined) => void;
   placeholder?: string;
   className?: string;
 };
@@ -23,9 +23,9 @@ export const NumberInput: FC<InputProps> = ({
     <NumericFormat
       value={value}
       onValueChange={(values) => {
-        if (values.floatValue !== undefined) {
-          onChange(values.floatValue);
-        }
+        // if (values.floatValue !== undefined) {
+        onChange(values.floatValue);
+        // }
       }}
       placeholder={placeholder}
       className={clsx(
