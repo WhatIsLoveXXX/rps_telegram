@@ -55,6 +55,6 @@ CREATE TABLE user_stats (
                             wins INT DEFAULT 0,
                             losses INT DEFAULT 0,
                             draws INT DEFAULT 0,
-                            profit NUMERIC(10, 2) DEFAULT 0,
+                            profit double precision DEFAULT 0,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
