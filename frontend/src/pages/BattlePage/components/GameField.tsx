@@ -24,7 +24,9 @@ export const GameField = () => {
         className="absolute top-0 left-0 w-full h-full object-cover -z-10"
       />
       {gameStarted && (
-        <div className="text-sm font-semibold mb-4">Round {round} of 5</div>
+        <div className="text-sm font-semibold mb-4  text-white">
+          Round {round} of 5
+        </div>
       )}
       {!!opponent?.user?.id && <OpponentField />}
       {gameStarted && (

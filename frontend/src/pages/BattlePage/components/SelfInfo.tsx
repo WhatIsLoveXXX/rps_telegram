@@ -39,19 +39,19 @@ export const SelfInfo = () => {
       )}
       <div className="flex items-center gap-[10px]">
         <div className="text-right whitespace-nowrap">
-          <p className="text-sm font-semibold">{user?.username}</p>
+          <p className="text-sm font-semibold  text-white">{user?.username}</p>
           <div className="text-[10px] flex justify-end gap-1">
             <div className="flex items-center gap-1">
               <WinIcon />
-              <span>{self.user.stats.wins}</span>
+              <span className="text-white">{self.user.stats.wins}</span>
             </div>
             <div className="flex items-center gap-1">
               <LossIcon />
-              <span>{self.user.stats.losses}</span>
+              <span className="text-white">{self.user.stats.losses}</span>
             </div>
             <div className="flex items-center gap-1">
               <DrawIcon />
-              <span>{self.user.stats.draws}</span>
+              <span className="text-white">{self.user.stats.draws}</span>
             </div>
           </div>
         </div>

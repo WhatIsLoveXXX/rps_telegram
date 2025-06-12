@@ -1,18 +1,29 @@
 import { FC, useState } from "react";
 import { Page } from "@/components/Page.tsx";
-import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
+import {
+  TonConnectButton,
+  useTonConnectUI,
+  useTonWallet,
+} from "@tonconnect/ui-react";
 import { Button } from "@/components/Button/Button";
 import { TopUpWalletModal } from "./components/TopUpWalletModal";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
+import { LoaderCircle } from "lucide-react";
 
 export const UserProfile: FC = () => {
   const { user, isLoading } = useUser();
   const wallet = useTonWallet();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const navigate = useNavigate();
+  const [tonConnectUI] = useTonConnectUI();
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <LoaderCircle className="animate-spin h-10 w-10" />
+      </div>
+    );
 
   return (
     <Page back={false}>
@@ -37,13 +48,15 @@ export const UserProfile: FC = () => {
         <div className="flex gap-[120px]">
           <div>
             <p className="text-[10px] text-[#B4B9BE] ">Play game:</p>
-            <p className="text-[12px] font-semibold text-[#1B73DD]">0</p>
+            <p className="text-[12px] font-semibold text-[#1B73DD]">
+              {user?.stats?.gamesCount || 0}
+            </p>
           </div>
           <div>
             <p className="text-[10px] text-[#B4B9BE] ">Earn:</p>
             <p className="text-[12px] font-semibold text-[#1B73DD]">
               <span className="text-[#B4B9BE] text-[10px] font-[400]">TON</span>{" "}
-              {user?.stats.profit}
+              {user?.stats?.profit || 0}
             </p>
           </div>
         </div>
@@ -72,7 +85,11 @@ export const UserProfile: FC = () => {
             </Button>
             <Button
               className="h-[30px]"
-              onClick={() => {
+              onClick={async () => {
+                if (!tonConnectUI.connected) {
+                  await tonConnectUI.openModal();
+                  return;
+                }
                 navigate("/withdraw");
               }}
               variant="secondary"

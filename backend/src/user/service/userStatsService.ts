@@ -4,7 +4,7 @@ import { Queryable } from '../../config/types';
 import { UserStatsError } from '../../constants/errors';
 
 export class UserStatsService {
-    static async updateUserStats(userId: number, bet: number, result: number, client: Queryable = db): Promise<void> {
+    static async updateUserStats(userId: number, bet: number, result: number, client: Queryable = db): Promise<UserStats> {
         try {
             const query = `
                 SELECT wins, losses, draws, profit
@@ -49,8 +49,24 @@ export class UserStatsService {
                     draws = EXCLUDED.draws,
                     profit = EXCLUDED.profit,
                     updated_at = CURRENT_TIMESTAMP
+                RETURNING *
             `;
-            await client.query(updateQuery, [userId, userStats.wins, userStats.losses, userStats.draws, userStats.profit]);
+            const updatedRes = await client.query(updateQuery, [
+                userId,
+                userStats.wins,
+                userStats.losses,
+                userStats.draws,
+                userStats.profit,
+            ]);
+
+            const row = updatedRes.rows[0];
+
+            return {
+                wins: row?.wins ?? 0,
+                losses: row?.losses ?? 0,
+                draws: row?.draws ?? 0,
+                profit: Number(row?.profit ?? 0),
+            };
         } catch (err) {
             console.error('Error in updateUserStats:', err);
             throw new UserStatsError();
@@ -66,12 +82,17 @@ export class UserStatsService {
             `;
             const res = await client.query(query, [userId]);
             const row = res.rows[0];
+            console.log('getUserStats row', row);
+            const wins = row?.wins ?? 0;
+            const losses = row?.losses ?? 0;
+            const draws = row?.draws ?? 0;
 
             return {
                 wins: row?.wins ?? 0,
                 losses: row?.losses ?? 0,
                 draws: row?.draws ?? 0,
                 profit: Number(row?.profit ?? 0),
+                gamesCount: wins + losses + draws,
             };
         } catch (err) {
             console.error('Error in getUserStats:', err);

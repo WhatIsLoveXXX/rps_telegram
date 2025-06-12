@@ -18,6 +18,7 @@ export interface PlayerState {
     photoUrl: string;
     wallet: string | null;
     stats: Stats;
+    username: string;
   };
   selectedCard?: Card;
   roundsWon: number;
@@ -35,7 +36,8 @@ interface GameState {
   gameWinner?: number | null;
   gameStarted: boolean;
   shouldShowOpponentCard: boolean;
-  showWinnerModal?: boolean;
+  showRoundWinnerModal?: boolean;
+  showGameWinnerModal?: boolean;
 }
 
 interface GameStore extends GameState {
@@ -43,6 +45,7 @@ interface GameStore extends GameState {
   selectSelfCard: (card: Card | undefined) => void;
   resetOpponentCard: () => void;
   resetGame: () => void;
+  resetGameWithoutUsers: () => void;
 }
 
 export const useGameStore = create<GameStore>((set) => ({
@@ -62,6 +65,7 @@ export const useGameStore = create<GameStore>((set) => ({
         losses: 0,
         draws: 0,
       },
+      username: "",
     },
     roundsWon: 0,
     isReady: false,
@@ -80,6 +84,7 @@ export const useGameStore = create<GameStore>((set) => ({
         losses: 0,
         draws: 0,
       },
+      username: "",
     },
     roundsWon: 0,
     isReady: false,
@@ -89,7 +94,8 @@ export const useGameStore = create<GameStore>((set) => ({
   roundWinner: undefined,
   gameStarted: false,
   shouldShowOpponentCard: false,
-  showWinnerModal: false,
+  showRoundWinnerModal: false,
+  showGameWinnerModal: false,
 
   setGameState: (state) => set((prev) => ({ ...prev, ...state })),
   selectSelfCard: (card) => {
@@ -125,8 +131,33 @@ export const useGameStore = create<GameStore>((set) => ({
             losses: 0,
             draws: 0,
           },
+          username: "",
         },
       },
       gameStarted: false,
+      showRoundWinnerModal: false,
+      showGameWinnerModal: false,
+    })),
+  resetGameWithoutUsers: () =>
+    set((state) => ({
+      ...state,
+      round: 1,
+      timeLeft: ROUND_TIME,
+      gameOver: false,
+      self: {
+        ...state.self,
+        isReady: false,
+        selectedCard: undefined,
+        roundsWon: 0,
+      },
+      opponent: {
+        ...state.opponent,
+        isReady: false,
+        selectedCard: undefined,
+        roundsWon: 0,
+      },
+      gameStarted: false,
+      showRoundWinnerModal: false,
+      showGameWinnerModal: false,
     })),
 }));

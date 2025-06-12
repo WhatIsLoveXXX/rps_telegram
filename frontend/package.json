@@ -26,7 +26,6 @@
     "buffer": "^6.0.3",
     "eruda": "^3.0.1",
     "framer-motion": "^12.16.0",
-    "gifuct-js": "^2.1.2",
     "lucide-react": "^0.487.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

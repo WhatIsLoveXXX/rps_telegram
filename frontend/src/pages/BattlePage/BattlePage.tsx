@@ -7,12 +7,19 @@ import { PlayerState, useGameStore } from "@/store/useGameStore";
 import { GameField } from "./components/GameField";
 import { splitPlayers } from "./utils/splitPlayers";
 import { startRoundTimer } from "./utils/roundTimer";
-import { WinnerModal } from "./components/WinnerModal";
+import { RoundWinnerModal } from "./components/RoundWinnerModal";
+import { GameWinnerModal } from "./components/GameWinnerModal";
 
 export const BattlePage = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const user = useTelegramUser();
-  const { setGameState, resetGame, showWinnerModal } = useGameStore();
+  const {
+    setGameState,
+    resetGame,
+    showRoundWinnerModal,
+    showGameWinnerModal,
+    resetGameWithoutUsers,
+  } = useGameStore();
 
   const { isLoading } = useSocketConnection();
 
@@ -49,7 +56,7 @@ export const BattlePage = () => {
         roundWinner: number | null;
         players: PlayerState[];
         shouldShowOpponentCard: boolean;
-        showWinnerModal: boolean;
+        showRoundWinnerModal: boolean;
       }) => {
         console.log("round_result", state);
 
@@ -75,6 +82,7 @@ export const BattlePage = () => {
         gameWinner: number | null;
         players: PlayerState[];
         gameOver: boolean;
+        showGameWinnerModal: boolean;
       }) => {
         const players: PlayerState[] = state.players;
         const { selfPlayer, opponentPlayer } = splitPlayers(players, user.id);
@@ -102,7 +110,7 @@ export const BattlePage = () => {
       players: PlayerState[];
       shouldShowOpponentCard: boolean;
       roundWinner: number | null;
-      showWinnerModal: boolean;
+      showRoundWinnerModal: boolean;
     }) => {
       console.log("start round", state);
       const players: PlayerState[] = state.players;
@@ -119,7 +127,7 @@ export const BattlePage = () => {
         opponent: opponentPlayer,
         gameStarted: true,
         // roundWinner: state.roundWinner,
-        // showWinnerModal: state.showWinnerModal,
+        // showRoundWinnerModal: state.showRoundWinnerModal,
       });
 
       startRoundTimer(roomId || "");
@@ -145,7 +153,11 @@ export const BattlePage = () => {
   return (
     <>
       <GameField />
-      <WinnerModal isOpen={showWinnerModal || false} />
+      <RoundWinnerModal isOpen={showRoundWinnerModal || false} />
+      <GameWinnerModal
+        isOpen={showGameWinnerModal || false}
+        onClose={resetGameWithoutUsers}
+      />
     </>
   );
 };

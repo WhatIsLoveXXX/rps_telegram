@@ -4,7 +4,7 @@ import { cardsImages } from "@/pages/BattlePage/consts";
 import { useGameStore } from "@/store/useGameStore";
 import { motion } from "framer-motion";
 
-interface WinnerModalProps {
+interface RoundWinnerModalProps {
   isOpen: boolean;
 }
 
@@ -56,7 +56,9 @@ const CardView = ({
   </motion.div>
 );
 
-export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen }) => {
+export const RoundWinnerModal: React.FC<RoundWinnerModalProps> = ({
+  isOpen,
+}) => {
   const { self, opponent, roundWinner } = useGameStore();
   const selfId = self.user?.id;
   const opponentId = opponent?.user?.id;
@@ -64,8 +66,8 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen }) => {
   const opponentCard = opponent?.selectedCard;
 
   let title = "Draw!";
-  if (roundWinner === selfId) title = "You win!";
-  else if (roundWinner === opponentId) title = "You lose!";
+  if (roundWinner === selfId) title = "You won!";
+  else if (roundWinner === opponentId) title = "You lost!";
 
   let topCardProps, bottomCardProps;
   if (roundWinner === selfId) {
@@ -132,7 +134,7 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen }) => {
   return (
     <Modal isOpen={isOpen}>
       <div className="flex flex-col items-center">
-        <h2 className="text-2xl font-bold mb-6">{title}</h2>
+        <h2 className="text-2xl font-bold mb-6  text-white">{title}</h2>
         <div className="relative w-[220px] h-[180px] flex items-center justify-center">
           <CardView {...bottomCardProps} />
           <CardView {...topCardProps} />

@@ -12,16 +12,22 @@ export const topUpBalance = async (
       senderAddress,
     });
     return response.data;
-  } catch (error) {
-    throw new Error(`Error top up`);
+  } catch (error: any) {
+    throw error.response.data.message;
   }
 };
 
-export const withdrawBalance = async (amount: number) => {
+export const withdrawBalance = async (
+  amount: number,
+  receiverAddress: string
+) => {
   try {
-    const response = await api.post("/users/balance/withdraw", { amount });
+    const response = await api.post("/users/balance/withdraw", {
+      amount,
+      receiverAddress,
+    });
     return response.data;
-  } catch (error) {
-    throw new Error(`Error withdrawing`);
+  } catch (error: any) {
+    throw error.response.data.message;
   }
 };

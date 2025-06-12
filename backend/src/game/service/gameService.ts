@@ -160,9 +160,10 @@ export class GameService {
                             players: remainingPlayers,
                             gameOver: gameState.gameOver,
                             gameStarted: false,
+                            showGameWinnerModal: true,
                         });
 
-                        await this.processGameResult(gameWinner, roomId);
+                        await this.processGameResult(io, gameWinner, roomId);
                     } else {
                         gameState.players.delete(userId.toString());
                         console.log('User ${userId} removed from gameState');
@@ -209,20 +210,17 @@ export class GameService {
                     players: [...game.players.values()],
                     gameOver: true,
                     gameStarted: false,
+                    showGameWinnerModal: true,
                 });
-                await this.processGameResult(gameWinner, roomId);
+                await this.processGameResult(io, gameWinner, roomId);
             } else {
                 io.in(roomId).emit(SocketAction.ROUND_RESULT, {
                     roundWinner: roundWinner === 0 ? null : roundWinner === 1 ? firstUserId : secondUserId,
                     players: [...game.players.values()],
                     shouldShowOpponentCard: true,
-                    showWinnerModal: true,
+                    showRoundWinnerModal: true,
                 });
 
-                // Очистка карт
-                for (const p of game.players.values()) {
-                    delete p.selectedCard;
-                }
                 // increase round
                 game.round++;
                 if (game.round > game.maxRounds) {
@@ -235,10 +233,10 @@ export class GameService {
                         players: [...game.players.values()],
                         gameOver: true,
                         gameStarted: false,
+                        showGameWinnerModal: true,
                     });
-                    await this.processGameResult(gameWinner, roomId);
+                    await this.processGameResult(io, gameWinner, roomId);
                 } else {
-                    console.log('should trigger round_start', !(game.round > game.maxRounds));
                     setTimeout(() => {
                         console.log('finishRound trigger round_start', game.round);
                         io.in(roomId).emit(SocketAction.ROUND_START, {
@@ -246,9 +244,13 @@ export class GameService {
                             players: [...game.players.values()],
                             shouldShowOpponentCard: false,
                             roundWinner: undefined,
-                            showWinnerModal: false,
+                            showRoundWinnerModal: false,
                         });
                     }, 3000);
+                }
+                // Очистка карт
+                for (const p of game.players.values()) {
+                    delete p.selectedCard;
                 }
             }
         } catch (error) {
@@ -265,7 +267,7 @@ export class GameService {
         return 2;
     }
 
-    private static async processGameResult(winnerId: number | null, roomId: string): Promise<void> {
+    private static async processGameResult(io: Server, winnerId: number | null, roomId: string): Promise<void> {
         for (let attempt = 1; attempt <= GameService.MAX_RETRIES; attempt++) {
             const client = await db.connect();
 
@@ -286,7 +288,7 @@ export class GameService {
 
                 await client.query('COMMIT');
 
-                await this.resetGameStatesAndRemoveLowBalancePlayers();
+                await this.resetGameStatesAndRemoveLowBalancePlayers(io, roomId);
 
                 return;
             } catch (err) {
@@ -344,21 +346,21 @@ export class GameService {
     private static async saveDrawHistory(players: any[], betAmount: number, client: any): Promise<void> {
         for (const player of players) {
             await GameHistoryService.saveGameHistory(player.id, betAmount, GameResult.DRAW, client);
-            await UserStatsService.updateUserStats(player.id, betAmount, GameResult.DRAW, client);
+            player.stats = await UserStatsService.updateUserStats(player.id, betAmount, GameResult.DRAW, client);
         }
     }
 
     private static async processWinnerAndLoser(winnerId: number, players: any[], betAmount: number, client: any): Promise<void> {
         const loser = players.find((player) => player.id !== winnerId);
+        const winner = players.find((player) => player.id === winnerId);
 
         await BalanceService.deductBalance(loser.id, betAmount, client);
         await BalanceService.addBalance(winnerId, betAmount, client);
 
         await GameHistoryService.saveGameHistory(winnerId, betAmount, GameResult.WIN, client);
         await GameHistoryService.saveGameHistory(loser.id, betAmount, GameResult.LOSE, client);
-
-        await UserStatsService.updateUserStats(winnerId, betAmount, GameResult.WIN, client);
-        await UserStatsService.updateUserStats(loser.id, betAmount, GameResult.LOSE, client);
+        winner.stats = await UserStatsService.updateUserStats(winnerId, betAmount, GameResult.WIN, client);
+        loser.stats = await UserStatsService.updateUserStats(loser.id, betAmount, GameResult.LOSE, client);
     }
 
     private static updateInStateBalances(winnerId: number, players: any[], betAmount: number): void {
@@ -398,29 +400,30 @@ export class GameService {
         games.set(roomId, state);
     }
 
-    private static async resetGameStatesAndRemoveLowBalancePlayers(): Promise<void> {
-        this.games.forEach((gameState, roomId) => {
-            const updatedPlayers = new Map<string, PlayerState>();
+    private static async resetGameStatesAndRemoveLowBalancePlayers(io: Server, roomId: string): Promise<void> {
+        const gameState = this.games.get(roomId);
+        if (!gameState) return;
+        const updatedPlayers = new Map<string, PlayerState>();
 
-            gameState.players.forEach((playerState, userId) => {
-                if (playerState.isConnected) {
-                    updatedPlayers.set(userId, {
-                        user: { ...playerState.user },
-                        roundsWon: 0,
-                        selectedCard: undefined,
-                        isReady: false,
-                        isConnected: true,
-                    });
-                }
-            });
-
-            this.games.set(roomId, {
-                players: updatedPlayers,
-                round: 1,
-                maxRounds: gameState.maxRounds,
-                gameOver: false,
-                gameStarted: false,
-            });
+        gameState.players.forEach((playerState, userId) => {
+            if (playerState.isConnected) {
+                updatedPlayers.set(userId, {
+                    user: { ...playerState.user },
+                    roundsWon: 0,
+                    selectedCard: undefined,
+                    isReady: false,
+                    isConnected: true,
+                });
+            }
         });
+        this.games.set(roomId, {
+            players: updatedPlayers,
+            round: 1,
+            maxRounds: gameState.maxRounds,
+            gameOver: false,
+            gameStarted: false,
+        });
+        // CHECK ---> issue with cards
+        io.in(roomId).emit(SocketAction.GAME_STATE, { players: [...updatedPlayers.values()] });
     }
 }

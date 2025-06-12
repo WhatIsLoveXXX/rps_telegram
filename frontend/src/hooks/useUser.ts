@@ -18,7 +18,7 @@ export const useUser = () => {
         const data = await getUser(user?.id);
         setUserInfo(data);
       } catch (error: any) {
-        toast.error(error.message);
+        toast.error(error);
       } finally {
         setIsLoading(false);
       }

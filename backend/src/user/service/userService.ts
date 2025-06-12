@@ -25,7 +25,7 @@ export class UserService {
     static async getUserById(id: number, withStats = false, client: Queryable = db): Promise<User | null> {
         try {
             const query = `
-                SELECT id, first_name, last_name, photo_url, balance, wallet
+                SELECT id, username, first_name, last_name, photo_url, balance, wallet
                 FROM users
                 WHERE id = $1
             `;

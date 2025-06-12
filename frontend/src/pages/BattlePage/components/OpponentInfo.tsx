@@ -19,19 +19,21 @@ export const OpponentInfo = () => {
         />
 
         <div className="whitespace-nowrap">
-          <p className="text-sm font-semibold">{opponent.user.firstName}</p>
+          <p className="text-sm font-semibold  text-white">
+            {opponent.user.username}
+          </p>
           <div className="text-[10px] flex  gap-1">
             <div className="flex items-center gap-1">
               <WinIcon />
-              <span>{opponent.user.stats.wins}</span>
+              <span className="text-white">{opponent.user.stats.wins}</span>
             </div>
             <div className="flex items-center gap-1">
               <LossIcon />
-              <span>{opponent.user.stats.losses}</span>
+              <span className="text-white">{opponent.user.stats.losses}</span>
             </div>
             <div className="flex items-center gap-1">
               <DrawIcon />
-              <span>{opponent.user.stats.draws}</span>
+              <span className="text-white">{opponent.user.stats.draws}</span>
             </div>
           </div>
         </div>

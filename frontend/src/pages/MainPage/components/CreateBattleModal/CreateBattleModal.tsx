@@ -29,7 +29,7 @@ export const CreateBattleModal: FC<CreateBattleModalProps> = ({
       const { roomId } = await createRoom(Number(sumTON));
       navigate(`/battle/${roomId}`);
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error);
     }
   };
 

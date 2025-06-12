@@ -47,7 +47,7 @@ export const TopUpWalletModal: FC<TopUpWalletModalProps> = ({
       );
       onClose();
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e);
       onClose();
       console.log(e);
     }

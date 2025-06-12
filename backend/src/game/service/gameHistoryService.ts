@@ -35,6 +35,7 @@ export class GameHistoryService {
         try {
             const query = `
                 SELECT u.id,
+                       u.username,
                        u.first_name,
                        u.last_name,
                        u.photo_url,
@@ -46,7 +47,7 @@ export class GameHistoryService {
                 FROM users u
                          JOIN game_history gh ON u.id = gh.user_id
                 WHERE gh.created_at >= date_trunc('month', CURRENT_DATE)
-                GROUP BY u.id, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
+                GROUP BY u.id, u.username, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
                 ORDER BY profit DESC LIMIT $1;
             `;
 

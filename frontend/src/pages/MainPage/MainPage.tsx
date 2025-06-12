@@ -10,7 +10,9 @@ export const MainPage: FC = () => {
 
   return (
     <Page back={false}>
-      <h1 className="text-center font-semibold mb-4">Actual battle</h1>
+      <h1 className="text-center font-semibold mb-4  text-white">
+        Actual battle
+      </h1>
       <div className="relative w-full h-[83px] flex justify-end items-center pr-[18px] mb-3">
         <img
           src={createBattleBanner}

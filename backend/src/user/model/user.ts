@@ -38,4 +38,5 @@ export type UserStats = {
     losses: number;
     draws: number;
     profit?: number;
+    gamesCount?: number;
 };

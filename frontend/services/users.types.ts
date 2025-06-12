@@ -8,8 +8,9 @@ export interface IUser {
   stats: {
     draws: number;
     losses: number;
-    profit: number;
+    profit?: number;
     wins: number;
+    gamesCount?: number;
   };
   wallet: null;
 }

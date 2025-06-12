@@ -30,10 +30,10 @@ export const WithdrawPage = () => {
 
     try {
       setIsCashOutLoading(true);
-      await withdrawBalance(withdrawAmount);
+      await withdrawBalance(withdrawAmount, userFriendlyAddress);
       toast.success("Withdrawal successful");
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error);
     } finally {
       setIsCashOutLoading(false);
     }
