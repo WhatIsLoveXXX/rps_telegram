@@ -1,0 +1,64 @@
+version: "1"
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: knb_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - knb_network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL}
+        VITE_RECEIVER_ADDRESS: ${VITE_RECEIVER_ADDRESS}
+    container_name: knb_frontend
+    volumes:
+      - frontend_dist:/app/dist
+    networks:
+      - knb_network
+        
+  db:
+    image: postgres
+    container_name: knb_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - knb_network
+
+  backend:
+    build: ./backend
+    container_name: knb_backend
+    ports:
+      - "${APP_PORT}:3000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - knb_network
+
+volumes:
+  frontend_dist:
+  pgdata:
+
+networks:
+  knb_network:
