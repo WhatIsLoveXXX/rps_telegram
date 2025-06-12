@@ -1,7 +1,6 @@
 import { FC, useState } from "react";
 import { Page } from "@/components/Page.tsx";
 import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
-import { useTelegramUser } from "@/hooks/useTelegramUser";
 import { Button } from "@/components/Button/Button";
 import { TopUpWalletModal } from "./components/TopUpWalletModal";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +8,6 @@ import { useUser } from "@/hooks/useUser";
 
 export const UserProfile: FC = () => {
   const { user, isLoading } = useUser();
-  const tgUser = useTelegramUser();
   const wallet = useTonWallet();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const navigate = useNavigate();

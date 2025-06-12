@@ -45,7 +45,7 @@ interface GameStore extends GameState {
   resetGame: () => void;
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
+export const useGameStore = create<GameStore>((set) => ({
   round: 1,
   timeLeft: ROUND_TIME,
   players: [],

@@ -1,6 +1,5 @@
 import { socket } from "@/utils/socket-config";
 import { useGameStore } from "@/store/useGameStore";
-import { useParams } from "react-router-dom";
 import { cards } from "../consts";
 import { CardType } from "../types";
 import { ROUND_TIME } from "@/store/consts";

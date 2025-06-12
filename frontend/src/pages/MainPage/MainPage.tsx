@@ -1,7 +1,6 @@
 import { FC, useState } from "react";
 import { Page } from "@/components/Page.tsx";
 import { CreateBattleModal } from "./components/CreateBattleModal/CreateBattleModal";
-import { useNavigate } from "react-router-dom";
 import createBattleBanner from "@/assets/create-battle-banner.png";
 import { Button } from "@/components/Button/Button";
 import { BattleList } from "./components/BattleList/BattleList";

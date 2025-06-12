@@ -1,6 +1,4 @@
 import { useGameStore } from "@/store/useGameStore";
-import { socket } from "@/utils/socket-config";
-import { useParams } from "react-router-dom";
 import clsx from "clsx";
 import { SelfInfo } from "./SelfInfo";
 import { motion } from "framer-motion";
