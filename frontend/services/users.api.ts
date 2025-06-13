@@ -27,3 +27,12 @@ export const updateWallet = async (walletAddress: string) => {
     throw error.response.data.message;
   }
 };
+
+export const getLeaderBoard = async () => {
+  try {
+    const response = await api.get<IUser[]>(`/leaderboard`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response.data.message;
+  }
+};

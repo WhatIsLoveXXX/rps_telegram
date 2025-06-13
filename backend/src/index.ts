@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import userRouter from './user/route/userRoutes';
 import roomRouter from './room/route/roomRoutes';
+import leaderboardRouter from './leaderboard/route/leaderBoardRoutes';
 
 import { authMiddleware, defaultErrorMiddleware, showInitDataMiddleware } from './middleware/auth.middleware';
 import http from 'http';
@@ -37,6 +38,7 @@ app.use(defaultErrorMiddleware);
 //Routes
 app.use('/api', userRouter);
 app.use('/api', roomRouter);
+app.use('/api', leaderboardRouter);
 
 // Start server a
 server.listen(port, () => {

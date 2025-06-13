@@ -69,6 +69,7 @@ export class GameService {
 
             if (user) {
                 user.isReady = true;
+                user.selectedCard = undefined;
             }
 
             io.in(roomId).emit(SocketAction.GAME_STATE, { players: [...players.values()] });
@@ -287,7 +288,7 @@ export class GameService {
                 }
 
                 await client.query('COMMIT');
-
+                // TODO: delete disconnected user instead of reset and sent game state
                 await this.resetGameStatesAndRemoveLowBalancePlayers(io, roomId);
 
                 return;
@@ -410,7 +411,7 @@ export class GameService {
                 updatedPlayers.set(userId, {
                     user: { ...playerState.user },
                     roundsWon: 0,
-                    selectedCard: undefined,
+                    selectedCard: playerState.selectedCard, // TODO: consider set to undefined
                     isReady: false,
                     isConnected: true,
                 });
@@ -423,7 +424,7 @@ export class GameService {
             gameOver: false,
             gameStarted: false,
         });
-        // CHECK ---> issue with cards
+        // CHECK ---> issue with cards if selectedCard: undefined
         io.in(roomId).emit(SocketAction.GAME_STATE, { players: [...updatedPlayers.values()] });
     }
 }

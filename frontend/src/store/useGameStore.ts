@@ -1,31 +1,48 @@
 import { create } from "zustand";
 import { ROUND_TIME } from "./consts";
 
+/**
+ * Represents the possible card choices in the game
+ */
 export type Card = "rock" | "paper" | "scissors";
 
-interface Stats {
+/**
+ * Player statistics interface
+ */
+export interface Stats {
   wins: number;
   losses: number;
   draws: number;
 }
 
+/**
+ * User information interface
+ */
+export interface UserInfo {
+  balance: number;
+  firstName: string;
+  id: number;
+  lastName: string;
+  photoUrl: string;
+  wallet: string | null;
+  stats: Stats;
+  username: string;
+}
+
+/**
+ * Represents the state of a player in the game
+ */
 export interface PlayerState {
-  user: {
-    balance: number;
-    firstName: string;
-    id: number;
-    lastName: string;
-    photoUrl: string;
-    wallet: string | null;
-    stats: Stats;
-    username: string;
-  };
+  user: UserInfo;
   selectedCard?: Card;
   roundsWon: number;
   isReady: boolean;
 }
 
-interface GameState {
+/**
+ * Represents the complete game state
+ */
+export interface GameState {
   players: PlayerState[];
   round: number;
   timeLeft: number;
@@ -40,6 +57,32 @@ interface GameState {
   showGameWinnerModal?: boolean;
 }
 
+/**
+ * Initial player state with default values
+ */
+const initialPlayerState: PlayerState = {
+  user: {
+    id: 0,
+    balance: 0,
+    firstName: "",
+    lastName: "",
+    photoUrl: "",
+    wallet: null,
+    stats: {
+      wins: 0,
+      losses: 0,
+      draws: 0,
+    },
+    username: "",
+  },
+  roundsWon: 0,
+  isReady: false,
+  selectedCard: undefined,
+};
+
+/**
+ * Game store interface with actions
+ */
 interface GameStore extends GameState {
   setGameState: (state: Partial<GameState>) => void;
   selectSelfCard: (card: Card | undefined) => void;
@@ -48,48 +91,15 @@ interface GameStore extends GameState {
   resetGameWithoutUsers: () => void;
 }
 
+/**
+ * Creates and manages the game store using Zustand
+ */
 export const useGameStore = create<GameStore>((set) => ({
   round: 1,
   timeLeft: ROUND_TIME,
   players: [],
-  self: {
-    user: {
-      id: 0,
-      balance: 0,
-      firstName: "",
-      lastName: "",
-      photoUrl: "",
-      wallet: null,
-      stats: {
-        wins: 0,
-        losses: 0,
-        draws: 0,
-      },
-      username: "",
-    },
-    roundsWon: 0,
-    isReady: false,
-    selectedCard: undefined,
-  },
-  opponent: {
-    user: {
-      id: 0,
-      balance: 0,
-      firstName: "",
-      lastName: "",
-      photoUrl: "",
-      wallet: null,
-      stats: {
-        wins: 0,
-        losses: 0,
-        draws: 0,
-      },
-      username: "",
-    },
-    roundsWon: 0,
-    isReady: false,
-    selectedCard: undefined,
-  },
+  self: { ...initialPlayerState },
+  opponent: { ...initialPlayerState },
   gameOver: false,
   roundWinner: undefined,
   gameStarted: false,
@@ -98,16 +108,19 @@ export const useGameStore = create<GameStore>((set) => ({
   showGameWinnerModal: false,
 
   setGameState: (state) => set((prev) => ({ ...prev, ...state })),
+
   selectSelfCard: (card) => {
     set((state) => ({
       self: { ...state.self, selectedCard: card },
     }));
   },
+
   resetOpponentCard: () => {
     set((state) => ({
       opponent: { ...state.opponent, selectedCard: undefined },
     }));
   },
+
   resetGame: () =>
     set((state) => ({
       ...state,
@@ -115,29 +128,12 @@ export const useGameStore = create<GameStore>((set) => ({
       timeLeft: ROUND_TIME,
       gameOver: false,
       self: { ...state.self, selectedCard: undefined, roundsWon: 0 },
-      opponent: {
-        selectedCard: undefined,
-        roundsWon: 0,
-        isReady: false,
-        user: {
-          id: 0,
-          balance: 0,
-          firstName: "",
-          lastName: "",
-          photoUrl: "",
-          wallet: null,
-          stats: {
-            wins: 0,
-            losses: 0,
-            draws: 0,
-          },
-          username: "",
-        },
-      },
+      opponent: { ...initialPlayerState },
       gameStarted: false,
       showRoundWinnerModal: false,
       showGameWinnerModal: false,
     })),
+
   resetGameWithoutUsers: () =>
     set((state) => ({
       ...state,
