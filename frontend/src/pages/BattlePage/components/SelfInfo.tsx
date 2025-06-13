@@ -16,7 +16,7 @@ export const SelfInfo = () => {
     if (self.isReady) return;
     socket.emit("user_ready", { roomId, userId: self.user.id });
   };
-  console.log("self", self);
+
   return (
     <div
       className={clsx(

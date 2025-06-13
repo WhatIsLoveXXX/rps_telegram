@@ -29,7 +29,17 @@ export class User {
     }
 
     static fromRow(row: any): User {
-        return new User(Number(row.id), row.username, row.first_name, row.last_name, row.photo_url, Number(row.balance), row.wallet, null);
+        const stats: UserStats | null =
+            'wins' in row && 'losses' in row && 'draws' in row
+                ? {
+                      wins: Number(row.wins),
+                      losses: Number(row.losses),
+                      draws: Number(row.draws),
+                      profit: row.profit !== undefined ? Number(row.profit) : undefined,
+                  }
+                : null;
+
+        return new User(Number(row.id), row.username, row.first_name, row.last_name, row.photo_url, Number(row.balance), row.wallet, stats);
     }
 }
 
