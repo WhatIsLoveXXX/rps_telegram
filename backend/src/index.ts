@@ -9,11 +9,17 @@ import { authMiddleware, defaultErrorMiddleware, showInitDataMiddleware } from '
 import http from 'http';
 import { initSocket } from './socket/socket';
 import { Server } from 'socket.io';
+import DepositRetryService from './ton-payments/util/TransactionChecker';
+import LeaderBoardCleaner from './leaderboard/util/leaderBoardCleaner';
 
 dotenv.config();
+require('buffer');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+DepositRetryService.start();
+LeaderBoardCleaner.start();
 
 const server = http.createServer(app);
 const io = new Server(server, {

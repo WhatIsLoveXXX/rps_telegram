@@ -82,7 +82,7 @@ export class UserStatsService {
             `;
             const res = await client.query(query, [userId]);
             const row = res.rows[0];
-            console.log('getUserStats row', row);
+
             const wins = row?.wins ?? 0;
             const losses = row?.losses ?? 0;
             const draws = row?.draws ?? 0;

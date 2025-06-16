@@ -58,8 +58,6 @@ export class UserService {
         let shouldInsertPending = false;
         try {
             await client.query('BEGIN');
-            // const wallet_address = 'UQDu9MSvI-jLSosK_BsRUjfvIK2G2hCHOTz6ItL_CXrOY4KO';
-            // const senderAddress = 'UQAdIOrlEnwyzZjOne0-PhYvFfybwH21eFeklmSkyggbKrsa';
 
             const user = await UserService.getUserById(userId, false, client);
 
@@ -68,11 +66,11 @@ export class UserService {
             }
 
             const { transaction, isSuccess } = await findTransactionByHashWithWait(senderAddress, boc);
-            if (transaction == null) {
+            if (transaction === null) {
                 shouldInsertPending = true;
                 throw new TransactionNotFoundError();
             }
-            const txHash = transaction.hash().toString('hex');
+            const txHash = Buffer.from(transaction.hash, 'base64').toString('hex');
             const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
             const updatedUser = isSuccess ? await BalanceService.addBalance(userId, amount, client) : null;
@@ -89,7 +87,7 @@ export class UserService {
                 try {
                     await client.query(
                         'INSERT INTO pending_deposits_withdrawals (user_id, boc, amount, type, wallet_address) VALUES ($1, $2, $3, $4, $5)',
-                        [userId, boc, amount, TransactionType.WITHDRAW, process.env.WALLET_ADDRESS]
+                        [userId, boc, amount, TransactionType.DEPOSIT, senderAddress]
                     );
                 } catch (insertErr) {
                     console.error('Failed to insert pending withdrawal:', insertErr);
@@ -114,16 +112,15 @@ export class UserService {
             if (!userResult) {
                 throw new UserNotFoundError();
             }
-            // const receiverAddress = 'UQDu9MSvI-jLSosK_BsRUjfvIK2G2hCHOTz6ItL_CXrOY4KO';
 
             const { transaction, isSuccess, messageHash: hash } = await sendTon(receiverAddress, amount);
             messageHash = hash;
 
-            if (transaction == null) {
+            if (transaction === null) {
                 shouldInsertPending = true;
                 throw new TransactionNotFoundError();
             }
-            const txHash = transaction.hash().toString('hex');
+            const txHash = Buffer.from(transaction.hash, 'base64').toString('hex');
             const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
             const updatedUser = BalanceService.deductBalance(userId, amount, client);

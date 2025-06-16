@@ -39,7 +39,8 @@ CREATE TABLE pending_deposits_withdrawals (
                                   type bit NOT NULL, 
                                   retry_count INTEGER DEFAULT 0,
                                   last_attempt_at TIMESTAMP DEFAULT NOW(),
-                                  created_at TIMESTAMP DEFAULT NOW()
+                                  created_at TIMESTAMP DEFAULT NOW(),
+                                  wallet_address VARCHAR DEFAULT NULL
 );
 
 CREATE TABLE game_history (

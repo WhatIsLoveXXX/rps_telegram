@@ -32,7 +32,7 @@ export class Transaction {
             Number(row.id),
             Number(row.user_id),
             parseFloat(row.amount),
-            row.type as TransactionType,
+            Number(row.type) as TransactionType,
             row.tx_hash,
             row.status as TransactionStatus,
             row.created_at

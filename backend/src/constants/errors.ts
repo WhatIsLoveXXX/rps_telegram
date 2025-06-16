@@ -43,21 +43,21 @@ export class InsufficientBalanceError extends Error {
 export class TransactionNotFoundError extends Error {
     constructor(message = 'Transaction not found') {
         super(message);
-        this.name = 'InsufficientBalanceError';
+        this.name = 'TransactionNotFoundError';
     }
 }
 
 export class CustomerNotEnoughFunds extends Error {
     constructor(message = 'There was an error with the withdraw, please contact the administrator') {
         super(message);
-        this.name = 'InsufficientBalanceError';
+        this.name = 'CustomerNotEnoughFunds';
     }
 }
 
 export class GameBrokenError extends Error {
     constructor(message = 'Game was broken, please contact the administrator') {
         super(message);
-        this.name = 'InsufficientBalanceError';
+        this.name = 'GameBrokenError';
     }
 }
 
@@ -85,7 +85,7 @@ export class UserStatsError extends Error {
 export class GameHistoryError extends Error {
     constructor(message = 'Game history error') {
         super(message);
-        this.name = 'UserStatsError';
+        this.name = 'GameHistoryError';
     }
 }
 

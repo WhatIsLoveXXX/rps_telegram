@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import db from '../../config/db';
-import { findTransactionByHashWithWait, sendTon } from './TonSenderReceiver';
+import { findTransactionByHashWithWait, getTransactionByMessageHash } from './TonSenderReceiver';
 import { TransactionService } from '../transactionService';
 import * as dotenv from 'dotenv';
 import { TransactionStatus, TransactionType } from '../types';
@@ -10,7 +10,7 @@ dotenv.config();
 
 class DepositRetryService {
     static start() {
-        cron.schedule('*/30 * * * *', async () => {
+        cron.schedule('*/25 * * * *', async () => {
             console.log('[CRON] Running deposit retry...');
             await DepositRetryService.processPendingDeposits();
         });
@@ -24,23 +24,34 @@ class DepositRetryService {
 
             for (const deposit of rows) {
                 const { id, user_id, boc, amount, type, retry_count, wallet_address } = deposit;
-                let transaction, isSuccess;
-                if (type === TransactionType.DEPOSIT) {
-                    ({ transaction, isSuccess } = await findTransactionByHashWithWait(wallet_address, boc));
+                let transactionInfo, isSuccessInfo;
+                if (Number(type) === TransactionType.DEPOSIT) {
+                    const { transaction, isSuccess } = await findTransactionByHashWithWait(wallet_address, boc);
+                    transactionInfo = transaction;
+                    isSuccessInfo = isSuccess;
                 } else {
-                    ({ transaction, isSuccess } = await sendTon(wallet_address, amount));
+                    const { transaction, isSuccess } = await getTransactionByMessageHash(wallet_address, boc);
+                    transactionInfo = transaction;
+                    isSuccessInfo = isSuccess;
                 }
-                const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
+                const transactionStatus = isSuccessInfo ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
-                if (transaction) {
-                    const txHash = transaction.hash().toString('hex');
+                if (transactionInfo) {
+                    const txHash = Buffer.from(transactionInfo.hash, 'base64').toString('hex');
                     await client.query('BEGIN');
 
-                    type === TransactionType.DEPOSIT
+                    Number(type) === TransactionType.DEPOSIT
                         ? await BalanceService.addBalance(user_id, amount, client)
                         : await BalanceService.deductBalance(user_id, amount, client);
 
-                    await TransactionService.createTransaction(user_id, amount, type as TransactionType, txHash, transactionStatus, client);
+                    await TransactionService.createTransaction(
+                        user_id,
+                        amount,
+                        Number(type) as TransactionType,
+                        txHash,
+                        transactionStatus,
+                        client
+                    );
 
                     await client.query('DELETE FROM pending_deposits_withdrawals WHERE id = $1', [id]);
                     await client.query('COMMIT');

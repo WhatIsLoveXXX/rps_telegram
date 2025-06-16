@@ -1,27 +1,15 @@
-import { mnemonicToWalletKey } from 'ton-crypto';
-import {
-    Address,
-    Cell,
-    comment,
-    internal,
-    OpenedContract,
-    SendMode,
-    toNano,
-    TonClient,
-    WalletContractV4,
-    beginCell,
-    storeMessage,
-    TransactionDescription,
-    TransactionActionPhase,
-} from 'ton';
+import { mnemonicToWalletKey } from '@ton/crypto';
+import { Cell, comment, internal, OpenedContract, SendMode, toNano, TonClient, WalletContractV4 } from '@ton/ton';
 import dotenv from 'dotenv';
 import { CustomerNotEnoughFunds, TransactionNotFoundError } from '../../constants/errors';
+import { TonTransaction, TonTransactionsResponse } from '../types';
 
 dotenv.config();
 
 const SECRET_WALLET_WORDS = process.env.SECRET_WALLET_WORDS || '';
-const TON_API_KEY = process.env.TON_API_KEY;
+const TON_API_KEY = process.env.TON_API_KEY || '';
 const TON_API_ENDPOINT = process.env.TON_API_ENDPOINT || '';
+const TON_API_V3_ENDPOINT = 'https://toncenter.com/api/v3';
 
 const client = new TonClient({
     endpoint: TON_API_ENDPOINT,
@@ -84,7 +72,7 @@ export async function sendTon(receiverAddress: string, amount: number) {
         sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS,
     });
 
-    const messageHash = Cell.fromBoc(transfer.toBoc())[0].hash().toString('hex');
+    const messageHash = Cell.fromBoc(transfer.toBoc())[0].hash().toString('base64');
 
     await contract.send(transfer);
 
@@ -94,43 +82,39 @@ export async function sendTon(receiverAddress: string, amount: number) {
 
     console.log('✅ Transaction confirmed. Receiving details...');
 
-    const { transaction, isSuccess } = await getTransactionByMessageHash(contract.address, messageHash);
+    const { transaction, isSuccess } = await getTransactionByMessageHash(contract.address.toString(), messageHash);
     return { transaction, isSuccess, messageHash };
 }
 
-export async function getTransactionByMessageHash(address: Address, desiredMessageHash: string) {
-    return findTransactionWithRetry(client, address, (tx) => {
-        const inMsgHash = tx.inMessage?.body?.hash?.().toString('hex');
+export async function getTransactionByMessageHash(senderAddress: string, desiredMessageHash: string) {
+    return findTransactionWithRetry(senderAddress, (tx) => {
+        const inMsgHash = tx.in_msg.message_content.hash;
         return inMsgHash === desiredMessageHash;
     });
 }
 
 export async function findTransactionByHashWithWait(senderAddress: string, boc: string) {
-    const address = Address.parse(senderAddress);
-
-    return findTransactionWithRetry(client, address, (tx) => {
-        const currentBoc = getMessageBoc(tx.inMessage);
-        return currentBoc === boc;
+    return findTransactionWithRetry(senderAddress, (tx) => {
+        const hashFromBoc = getCellHashFromBoc(boc);
+        return hashFromBoc === tx.in_msg.hash;
     });
 }
 
 async function findTransactionWithRetry(
-    client: TonClient,
-    address: Address,
+    addressFriendly: string,
     match: (tx: any) => boolean
-): Promise<{ transaction: any | null; isSuccess: boolean }> {
+): Promise<{ transaction: TonTransaction | null; isSuccess: boolean }> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        const limit = attempt * 10;
+        const limit = attempt * 2;
         console.log(`🔁 Attempt ${attempt}, checking last ${limit} transactions...`);
 
         try {
-            const txs = await client.getTransactions(address, { limit });
+            const txs = await getTransactions(addressFriendly, limit);
 
             for (const transaction of txs) {
-                if (!transaction.inMessage) continue;
-
+                if (!transaction.in_msg) continue;
                 if (match(transaction)) {
-                    const isSuccess = isTransactionSuccess(transaction.description);
+                    const isSuccess = isTransactionSuccess(transaction);
                     console.log('✅ Transaction found');
                     return { transaction, isSuccess };
                 }
@@ -148,39 +132,26 @@ async function findTransactionWithRetry(
     return { transaction: null, isSuccess: false };
 }
 
-function isTransactionSuccess(description: any): boolean {
-    const { isAborted, actionPhase } = checkAbortedAndAction(description);
-    return isAborted || !actionPhase ? false : actionPhase.success;
+function isTransactionSuccess(tonTransaction: TonTransaction): boolean {
+    const isAborted = tonTransaction.description.aborted;
+    const action = tonTransaction.description.action;
+    return isAborted || !action ? false : action.success;
 }
 
-function getMessageBoc(message: any): string {
-    return beginCell().store(storeMessage(message)).endCell().toBoc().toString('base64');
-}
-
-function checkAbortedAndAction(description: TransactionDescription): {
-    isAborted?: boolean;
-    actionPhase?: TransactionActionPhase;
-} {
-    let isAborted: boolean | undefined;
-    let actionPhase: TransactionActionPhase | undefined;
-
-    switch (description.type) {
-        case 'generic':
-        case 'tick-tock':
-        case 'split-prepare':
-        case 'merge-install':
-            isAborted = description.aborted;
-
-            if (description.actionPhase) {
-                actionPhase = description.actionPhase;
-            }
-            break;
-        case 'merge-prepare':
-            isAborted = description.aborted;
-            break;
-        case 'storage':
-        case 'split-install':
-            break;
+async function getTransactions(senderAddress: string, limit: number): Promise<TonTransaction[]> {
+    try {
+        const url = TON_API_V3_ENDPOINT + '/transactions?account=' + senderAddress + '&sort=desc&limit=' + limit + '&offset=0';
+        const apiKey = TON_API_KEY;
+        const response = await fetch(url, { headers: { apiKey } });
+        const data: TonTransactionsResponse = await response.json();
+        return data.transactions || [];
+    } catch (error) {
+        console.error(error);
+        return [];
     }
-    return { isAborted, actionPhase };
+}
+
+function getCellHashFromBoc(bocBase64: string): string {
+    const cell = Cell.fromBoc(Buffer.from(bocBase64, 'base64'))[0];
+    return cell.hash().toString('base64');
 }

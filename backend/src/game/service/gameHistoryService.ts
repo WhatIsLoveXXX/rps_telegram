@@ -74,4 +74,13 @@ export class GameHistoryService {
             throw new GameHistoryError();
         }
     }
+
+    static async deleteGameHistory(client: Queryable = db): Promise<void> {
+        try {
+            await client.query(`DELETE FROM game_history`);
+        } catch (err) {
+            console.error('Error in deleteGameHistory:', err);
+            throw new GameHistoryError();
+        }
+    }
 }
