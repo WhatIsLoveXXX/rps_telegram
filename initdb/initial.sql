@@ -52,10 +52,11 @@ CREATE TABLE game_history (
 );
 
 CREATE TABLE user_stats (
-                            user_id INT PRIMARY KEY,
-                            wins INT DEFAULT 0,
-                            losses INT DEFAULT 0,
-                            draws INT DEFAULT 0,
-                            profit double precision DEFAULT 0,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id BIGINT PRIMARY KEY,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    draws INTEGER DEFAULT 0,
+    profit double precision DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT user_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id)
 );
