@@ -1,39 +1,43 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { getOpenRooms } from "../../../../../services/room.api";
 import BattleCard from "./BattleCard";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { LoaderCircle, RotateCcw } from "lucide-react";
-
-interface Battle {
-  betAmount: number;
-  createdAt: string;
-  creatorId: string;
-  creatorPhotoUrl: string;
-  creatorUsername: string;
-  id: string;
-}
+import { useRoomStore } from "@/store/useRoomStore";
 
 export const BattleList = () => {
-  const [battles, setBattles] = useState<Battle[]>([]);
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isLoading, rooms, setRooms, setLoading, currentFilters } =
+    useRoomStore();
 
   const fetchBattles = useCallback(async () => {
+    setLoading(true);
     try {
-      setIsLoading(true);
-      const data = await getOpenRooms();
-      setBattles(data);
+      const data = await getOpenRooms(
+        Object.keys(currentFilters).length > 0 ? currentFilters : undefined
+      );
+      setRooms(data);
     } catch (error: any) {
-      toast.error(error);
-    } finally {
-      setIsLoading(false);
+      toast.error(error.message);
+      setLoading(false);
     }
-  }, []);
+  }, [currentFilters, setRooms, setLoading]);
+
+  const fetchInitialBattles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getOpenRooms();
+      setRooms(data);
+    } catch (error: any) {
+      toast.error(error.message);
+      setLoading(false);
+    }
+  }, [setRooms, setLoading]);
 
   useEffect(() => {
-    fetchBattles();
-  }, [fetchBattles]);
+    fetchInitialBattles();
+  }, [fetchInitialBattles]);
 
   const handleBattleClick = (id: string) => {
     navigate(`/battle/${id}`);
@@ -54,7 +58,7 @@ export const BattleList = () => {
           <LoaderCircle className="animate-spin" />
         </div>
       ) : (
-        battles.map(({ id, betAmount, creatorPhotoUrl, creatorUsername }) => (
+        rooms.map(({ id, betAmount, creatorPhotoUrl, creatorUsername }) => (
           <BattleCard
             key={id}
             betAmount={betAmount}

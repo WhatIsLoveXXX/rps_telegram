@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import ModalScissors from "@/assets/modal-scissors.svg?react";
 import { toast } from "react-toastify";
 import { NumberInput } from "@/components/Input/NumberInput";
+import { MAX_BET, MIN_BET } from "../../consts";
 
 interface CreateBattleModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export const CreateBattleModal: FC<CreateBattleModalProps> = ({
           onChange={(value) => setSumTON(value)}
           placeholder="TON"
           className="max-w-[92px]"
+          max={MAX_BET}
+          min={MIN_BET}
         />
 
         <div className="relative w-full flex justify-center">

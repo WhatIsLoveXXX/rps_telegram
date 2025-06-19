@@ -39,17 +39,17 @@ export class RoomService {
             const params: any[] = [];
             let whereClauses: string[] = [];
 
-            if (options?.creatorUsername != null) {
-                params.push(options.creatorUsername);
-                whereClauses.push(`u.username = $${params.length}`);
+            if (options?.creatorUsername) {
+                params.push(`%${options.creatorUsername}%`);
+                whereClauses.push(`u.username ILIKE $${params.length}`);
             }
 
-            if (options?.betMin != null) {
+            if (options?.betMin) {
                 params.push(options.betMin);
                 whereClauses.push(`r.bet_amount >= $${params.length}`);
             }
 
-            if (options?.betMax != null) {
+            if (options?.betMax) {
                 params.push(options.betMax);
                 whereClauses.push(`r.bet_amount <= $${params.length}`);
             }

@@ -4,6 +4,7 @@ import { CreateBattleModal } from "./components/CreateBattleModal/CreateBattleMo
 import createBattleBanner from "@/assets/create-battle-banner.png";
 import { Button } from "@/components/Button/Button";
 import { BattleList } from "./components/BattleList/BattleList";
+import { Filters } from "./components/Filters/Filters";
 
 export const MainPage: FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,7 @@ export const MainPage: FC = () => {
           Create battle
         </Button>
       </div>
+      <Filters />
       <BattleList />
 
       <CreateBattleModal

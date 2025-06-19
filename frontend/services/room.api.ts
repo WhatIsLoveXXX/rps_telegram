@@ -9,9 +9,27 @@ export const createRoom = async (betAmount: number) => {
   }
 };
 
-export const getOpenRooms = async () => {
+export interface RoomFilters {
+  creatorUsername?: string;
+  betMin?: number;
+  betMax?: number;
+}
+
+export const getOpenRooms = async (filters?: RoomFilters) => {
   try {
-    const response = await api.get("/rooms/open");
+    const params = new URLSearchParams();
+
+    if (filters?.creatorUsername) {
+      params.append("creatorUsername", filters.creatorUsername);
+    }
+    if (filters?.betMin !== undefined) {
+      params.append("betMin", filters.betMin.toString());
+    }
+    if (filters?.betMax !== undefined) {
+      params.append("betMax", filters.betMax.toString());
+    }
+
+    const response = await api.get(`/rooms/open?${params.toString()}`);
     return response.data;
   } catch (error: any) {
     throw error.response.data.message;
