@@ -55,6 +55,8 @@ export interface GameState {
   shouldShowOpponentCard: boolean;
   showRoundWinnerModal?: boolean;
   showGameWinnerModal?: boolean;
+  readyTimeLeft?: number;
+  showReadyTimer?: boolean;
 }
 
 /**
@@ -106,6 +108,8 @@ export const useGameStore = create<GameStore>((set) => ({
   shouldShowOpponentCard: false,
   showRoundWinnerModal: false,
   showGameWinnerModal: false,
+  readyTimeLeft: undefined,
+  showReadyTimer: false,
 
   setGameState: (state) => set((prev) => ({ ...prev, ...state })),
 
@@ -132,6 +136,8 @@ export const useGameStore = create<GameStore>((set) => ({
       gameStarted: false,
       showRoundWinnerModal: false,
       showGameWinnerModal: false,
+      readyTimeLeft: undefined,
+      showReadyTimer: false,
     })),
 
   resetGameWithoutUsers: () =>
@@ -155,5 +161,7 @@ export const useGameStore = create<GameStore>((set) => ({
       gameStarted: false,
       showRoundWinnerModal: false,
       showGameWinnerModal: false,
+      readyTimeLeft: undefined,
+      showReadyTimer: false,
     })),
 }));

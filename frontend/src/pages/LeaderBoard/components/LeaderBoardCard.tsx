@@ -28,9 +28,10 @@ const LeaderBoardCard = ({
 
   return (
     <div
-      className={`flex items-center justify-between ${backgroundClass} rounded-lg p-2 pr-4 mb-[10px] w-full shadow`}
+      className={`flex items-center justify-between ${backgroundClass} rounded-lg p-2 pr-4 w-full shadow`}
     >
       <div className="flex items-center gap-2">
+        <div className="text-white text-sm font-semibold">{position}</div>
         <img
           src={photoUrl}
           alt={username}

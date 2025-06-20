@@ -55,7 +55,7 @@ export const BattleList = () => {
       </div>
       {isLoading ? (
         <div className="flex justify-center items-center h-full">
-          <LoaderCircle className="animate-spin" />
+          <LoaderCircle className="animate-spin text-white" />
         </div>
       ) : (
         rooms.map(({ id, betAmount, creatorPhotoUrl, creatorUsername }) => (

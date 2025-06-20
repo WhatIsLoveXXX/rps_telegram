@@ -45,9 +45,13 @@ export const WithdrawPage = () => {
         <div>Loading...</div>
       ) : (
         <>
-          <h2 className="text-base font-semibold text-center mb-3">Cash out</h2>
+          <h2 className="text-base font-semibold text-center mb-3 text-white">
+            Cash out
+          </h2>
           <div className="border border-[#313030] bg-[#191919]/40 px-4 py-2 rounded-lg">
-            <h3 className="text-sm font-semibold">Current balance:</h3>
+            <h3 className="text-sm font-semibold text-white">
+              Current balance:
+            </h3>
             <p className="text-[#B4B9BE] text-[10px]">
               TON <span className="text-[#1B73DD]">{user?.balance}</span>
             </p>

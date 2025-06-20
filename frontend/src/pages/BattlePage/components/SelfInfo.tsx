@@ -6,11 +6,20 @@ import { useTelegramUser } from "@/hooks/useTelegramUser";
 import WinIcon from "@/assets/icons/win-icon.svg?react";
 import LossIcon from "@/assets/icons/lose-icon.svg?react";
 import DrawIcon from "@/assets/icons/draw-icon.svg?react";
+import { CircularProgress } from "./CircularProgress";
+import { READY_TIMEOUT } from "../consts";
 
 export const SelfInfo = () => {
   const user = useTelegramUser();
-  const { self, gameStarted, opponent } = useGameStore();
+  const { self, gameStarted, opponent, showReadyTimer, readyTimeLeft } =
+    useGameStore();
   const { roomId } = useParams<{ roomId: string }>();
+
+  // Вычисляем прогресс для круговой полоски (от 100% до 0%)
+  const progress =
+    showReadyTimer && readyTimeLeft !== undefined
+      ? (readyTimeLeft / READY_TIMEOUT) * 100
+      : 100;
 
   const handleReady = () => {
     if (self.isReady) return;
@@ -58,11 +67,16 @@ export const SelfInfo = () => {
             </div>
           </div>
         </div>
-        <img
-          className="min-w-13 min-h-13 max-w-12 max-h-12 rounded-full"
-          src={user?.photoUrl}
-          alt="self"
-        />
+        <CircularProgress
+          progress={showReadyTimer && !self.isReady ? progress : 0}
+          size={61}
+        >
+          <img
+            className="min-w-13 min-h-13 max-w-13 max-h-13 rounded-full"
+            src={user?.photoUrl}
+            alt="self"
+          />
+        </CircularProgress>
       </div>
     </div>
   );

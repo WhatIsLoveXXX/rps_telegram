@@ -26,7 +26,7 @@ export const LeaderBoardList: FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
-        <LoaderCircle className="animate-spin" />
+        <LoaderCircle className="animate-spin text-white" />
       </div>
     );
   }

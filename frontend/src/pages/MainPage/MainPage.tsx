@@ -11,20 +11,23 @@ export const MainPage: FC = () => {
 
   return (
     <Page back={false}>
-      <h1 className="text-center font-semibold mb-4  text-white">
-        Actual battle
-      </h1>
       <div className="relative w-full h-[83px] flex justify-end items-center pr-[18px] mb-3">
         <img
           src={createBattleBanner}
           alt="Create battle banner"
           className="absolute top-0 left-0 w-full h-full z-0"
         />
-        <Button className="z-10 relative" onClick={() => setIsModalOpen(true)}>
+        <Button
+          className="z-10 relative px-4 py-3"
+          onClick={() => setIsModalOpen(true)}
+        >
           Create battle
         </Button>
       </div>
       <Filters />
+      <h1 className="text-center font-semibold mb-4  text-white">
+        Actual battles
+      </h1>
       <BattleList />
 
       <CreateBattleModal

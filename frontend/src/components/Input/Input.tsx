@@ -1,4 +1,4 @@
-import { FC, InputHTMLAttributes, forwardRef } from "react";
+import { InputHTMLAttributes, forwardRef } from "react";
 import clsx from "clsx";
 
 interface InputProps

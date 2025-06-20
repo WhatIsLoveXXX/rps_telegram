@@ -1,5 +1,5 @@
 import { useTelegramUser } from "@/hooks/useTelegramUser";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { socket } from "@/utils/socket-config";
 import { useSocketConnection } from "./hooks/useSocketConnection";
 import { useEffect } from "react";
@@ -10,8 +10,12 @@ import { startRoundTimer } from "./utils/roundTimer";
 import { RoundWinnerModal } from "./components/RoundWinnerModal";
 import { GameWinnerModal } from "./components/GameWinnerModal";
 
+import { useReadyTimer } from "./hooks/useReadyTimer";
+import { shouldStartReadyTimer } from "./utils/playerReadyChecker";
+
 export const BattlePage = () => {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const user = useTelegramUser();
   const {
     setGameState,
@@ -19,9 +23,65 @@ export const BattlePage = () => {
     showRoundWinnerModal,
     showGameWinnerModal,
     resetGameWithoutUsers,
+    players,
+    gameStarted,
   } = useGameStore();
 
   const { isLoading } = useSocketConnection();
+
+  // Хук для управления таймером готовности
+  const { timeLeft: readyTimeLeft, isActive: isReadyTimerActive } =
+    useReadyTimer({
+      roomId: roomId || "",
+      shouldStartTimer: shouldStartReadyTimer(players, gameStarted),
+      onTimeExpired: () => {
+        console.log("=== TIMER EXPIRED - DETAILED CHECK ===");
+        console.log("Current user ID:", user?.id);
+        console.log(
+          "Players state:",
+          players.map((p) => ({
+            id: p.user.id,
+            username: p.user.username,
+            isReady: p.isReady,
+          }))
+        );
+
+        // Когда время истекло, проверяем готовность текущего пользователя
+        const currentPlayer = players.find((p) => p.user.id === user?.id);
+        console.log(
+          "Current player found:",
+          currentPlayer
+            ? {
+                id: currentPlayer.user.id,
+                username: currentPlayer.user.username,
+                isReady: currentPlayer.isReady,
+              }
+            : "NOT FOUND"
+        );
+
+        // Если текущий пользователь не готов - выкидываем его
+        if (currentPlayer && !currentPlayer.isReady) {
+          console.log("❌ Kicking current player - NOT READY");
+          navigate("/battles");
+        } else if (currentPlayer && currentPlayer.isReady) {
+          console.log("✅ Current player is READY - staying in room");
+        } else {
+          console.log(
+            "⚠️ Current player NOT FOUND in players array - this is a problem!"
+          );
+          // Возможно стоит не выкидывать если игрока нет в массиве
+        }
+        console.log("=== END TIMER EXPIRED CHECK ===");
+      },
+    });
+
+  // Обновляем состояние таймера готовности в store
+  useEffect(() => {
+    setGameState({
+      readyTimeLeft,
+      showReadyTimer: isReadyTimerActive,
+    });
+  }, [readyTimeLeft, isReadyTimerActive, setGameState]);
 
   useEffect(() => {
     if (!roomId || !user?.id) return;
