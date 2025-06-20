@@ -10,7 +10,7 @@ export const OpponentInfo = () => {
   if (!opponent) return null;
 
   return (
-    <div className="flex justify-between mb-5">
+    <div className="flex justify-between mb-5 items-center">
       <div className="flex items-center gap-2">
         <img
           className="min-w-13 min-h-13 max-w-12 max-h-12 rounded-full"
@@ -38,7 +38,7 @@ export const OpponentInfo = () => {
           </div>
         </div>
       </div>
-      {!gameStarted && (
+      {!gameStarted ? (
         <p
           className={clsx(
             "font-medium text-sm",
@@ -47,6 +47,10 @@ export const OpponentInfo = () => {
         >
           {opponent.isReady ? "Ready" : "Not ready"}
         </p>
+      ) : (
+        <div className="text-white text-sm">
+          Rounds won: {opponent.roundsWon}
+        </div>
       )}
     </div>
   );

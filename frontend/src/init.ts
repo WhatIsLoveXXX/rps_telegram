@@ -6,7 +6,8 @@ import {
   initData,
   $debug,
   init as initSDK,
-} from '@telegram-apps/sdk-react';
+  swipeBehavior,
+} from "@telegram-apps/sdk-react";
 
 /**
  * Initializes the application and configures its dependencies.
@@ -20,24 +21,24 @@ export function init(debug: boolean): void {
   initSDK();
 
   // Add Eruda if needed.
-  debug && import('eruda')
-    .then((lib) => lib.default.init())
-    .catch(console.error);
+  debug &&
+    import("eruda").then((lib) => lib.default.init()).catch(console.error);
 
   // Check if all required components are supported.
   if (!backButton.isSupported() || !miniApp.isSupported()) {
-    throw new Error('ERR_NOT_SUPPORTED');
+    throw new Error("ERR_NOT_SUPPORTED");
   }
 
   // Mount all components used in the project.
+  swipeBehavior.mount();
   backButton.mount();
   miniApp.mount();
   themeParams.mount();
   initData.restore();
   void viewport
     .mount()
-    .catch(e => {
-      console.error('Something went wrong mounting the viewport', e);
+    .catch((e) => {
+      console.error("Something went wrong mounting the viewport", e);
     })
     .then(() => {
       viewport.bindCssVars();

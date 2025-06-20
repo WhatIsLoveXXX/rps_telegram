@@ -21,14 +21,14 @@ export const SelfInfo = () => {
     <div
       className={clsx(
         "flex items-center mb-4",
-        !gameStarted && !!opponent?.user?.id ? "justify-between" : "justify-end"
+        gameStarted && !!opponent?.user?.id ? "justify-between" : "justify-end"
       )}
     >
       {!gameStarted && !!opponent?.user?.id && (
         <button
           onClick={handleReady}
           className={clsx(
-            "px-2  text-white font-medium text-sm py-1 rounded-lg transition",
+            "px-6  text-white font-medium text-sm py-2 rounded-lg transition absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2",
             self.isReady
               ? "bg-[#1B73DD]/60"
               : "bg-[#1B73DD] hover:bg-[#1B73DD]/80"
@@ -36,6 +36,9 @@ export const SelfInfo = () => {
         >
           Ready
         </button>
+      )}
+      {gameStarted && !!opponent?.user?.id && (
+        <div className="text-white text-sm">Rounds won: {self.roundsWon}</div>
       )}
       <div className="flex items-center gap-[10px]">
         <div className="text-right whitespace-nowrap">

@@ -29,6 +29,10 @@ html {
   );
 }
 
+.leader-bord-card-gradient {
+  background: linear-gradient(150deg, #021b8c 10%, #01052d 50%, #021b8c 94%);
+}
+
 #ton-connect-button button {
   background: #1b73dd;
   border-radius: 8px;

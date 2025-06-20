@@ -1,4 +1,10 @@
-import { useLaunchParams, miniApp, useSignal } from "@telegram-apps/sdk-react";
+import {
+  useLaunchParams,
+  miniApp,
+  useSignal,
+  viewport,
+  swipeBehavior,
+} from "@telegram-apps/sdk-react";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Navigate, Route, Routes, HashRouter } from "react-router-dom";
 
@@ -13,6 +19,13 @@ export function App() {
 
   useEffect(() => {
     authorize();
+
+    if (viewport.expand.isAvailable()) {
+      viewport.expand();
+    }
+    if (swipeBehavior.disableVertical.isAvailable()) {
+      swipeBehavior.disableVertical();
+    }
   }, []);
 
   return (

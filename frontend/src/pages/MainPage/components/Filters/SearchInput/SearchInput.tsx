@@ -25,6 +25,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     debouncedOnChange(val);
   };
 
+  const onEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      (e.target as HTMLInputElement).blur();
+    }
+  };
+
   return (
     <div className="mt-4 relative">
       <Input
@@ -32,6 +38,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         value={inputValue}
         onChange={handleInputChange}
         placeholder={placeholder}
+        onKeyDown={onEnter}
       />
       <SearchIcon className="absolute top-1/2 right-3 transform -translate-y-1/2 text-blue-500" />
     </div>

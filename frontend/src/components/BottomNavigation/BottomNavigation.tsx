@@ -3,6 +3,8 @@ import clsx from "clsx";
 import { LeaderNavIcon } from "@/assets/icons/LeaderNavIcon";
 import { BattleNavIcon } from "@/assets/icons/BattleNavIcon";
 import { ProfileNavIcon } from "@/assets/icons/ProfileNavIcon";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
+import { useGameStore } from "@/store/useGameStore";
 
 const navItems = [
   { to: "/leaderboard", label: "Leader", Icon: LeaderNavIcon },
@@ -11,16 +13,26 @@ const navItems = [
 ];
 
 export const BottomNavigation = () => {
+  const { gameStarted } = useGameStore();
+
+  const handleClick = () => {
+    if (hapticFeedback.impactOccurred.isAvailable()) {
+      hapticFeedback.impactOccurred("soft");
+    }
+  };
+
   return (
     <nav className="fixed bottom-4 w-[calc(100%-30px)] max-w-[400px] left-1/2 z-50 flex -translate-x-1/2 justify-between rounded-2xl px-4 py-2 shadow-lg bottom-navigation-gradient">
       {navItems.map(({ to, label, Icon }) => (
         <NavLink
           key={to}
           to={to}
+          onClick={handleClick}
           className={({ isActive }) =>
             clsx(
               "group flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all",
-              isActive ? "text-[#F5EE8F]" : "hover:text-[#F5EE8F] text-white"
+              isActive ? "text-[#F5EE8F]" : "hover:text-[#F5EE8F] text-white",
+              gameStarted ? "pointer-events-none" : "pointer-events-auto"
             )
           }
         >

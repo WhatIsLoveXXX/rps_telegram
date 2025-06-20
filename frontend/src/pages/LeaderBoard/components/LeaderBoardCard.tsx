@@ -12,15 +12,24 @@ interface LeaderBoardCardProps {
     profit?: number;
     gamesCount?: number;
   };
+  position?: number;
 }
 
 const LeaderBoardCard = ({
   username,
   photoUrl,
   stats,
+  position,
 }: LeaderBoardCardProps) => {
+  const isTopThree = position !== undefined && position <= 3;
+  const backgroundClass = isTopThree
+    ? "leader-bord-card-gradient"
+    : "bg-[#181818] border border-[#313030]";
+
   return (
-    <div className="flex items-center justify-between bg-[#181818] border border-[#313030] rounded-lg p-2 pr-4 mb-[10px] w-full shadow">
+    <div
+      className={`flex items-center justify-between ${backgroundClass} rounded-lg p-2 pr-4 mb-[10px] w-full shadow`}
+    >
       <div className="flex items-center gap-2">
         <img
           src={photoUrl}

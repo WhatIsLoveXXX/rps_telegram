@@ -5,7 +5,7 @@ import { TransactionService } from '../../ton-payments/transactionService';
 import { Queryable } from '../../config/types';
 import { UserStatsService } from './userStatsService';
 import { BalanceService } from './balanceService';
-import { TransactionNotFoundError, UserNotFoundError } from '../../constants/errors';
+import { InsufficientBalanceError, TransactionNotFoundError, UserNotFoundError } from '../../constants/errors';
 import { TransactionStatus, TransactionType } from '../../ton-payments/types';
 
 export class UserService {
@@ -24,11 +24,7 @@ export class UserService {
 
     static async getUserById(id: number, withStats = false, client: Queryable = db): Promise<User | null> {
         try {
-            const query = `
-                SELECT id, username, first_name, last_name, photo_url, balance, wallet
-                FROM users
-                WHERE id = $1
-            `;
+            const query = 'SELECT * FROM users WHERE id = $1';
             const res = await client.query(query, [id]);
             const row = res.rows[0];
             if (!row) return null;
@@ -111,6 +107,10 @@ export class UserService {
             const userResult = await UserService.getUserById(userId, false, client);
             if (!userResult) {
                 throw new UserNotFoundError();
+            }
+
+            if (userResult.balance < amount) {
+                throw new InsufficientBalanceError();
             }
 
             const { transaction, isSuccess, messageHash: hash } = await sendTon(receiverAddress, amount);

@@ -23,14 +23,14 @@ export const GameField = () => {
         alt="bg"
         className="absolute top-0 left-0 w-full h-full object-cover -z-10"
       />
-      {gameStarted && (
-        <div className="text-sm font-semibold mb-4  text-white">
-          Round {round} of 5
-        </div>
-      )}
       {!!opponent?.user?.id && <OpponentField />}
       {gameStarted && (
-        <div className="text-center text-md font-semibold">{timeLeft}</div>
+        <div className="flex flex-col items-center justify-center">
+          <div className="text-sm font-semibold mb-4  text-white">
+            Round {round} of 5
+          </div>
+          <div className="text-center text-md font-semibold">{timeLeft}</div>
+        </div>
       )}
       <PlayerField />
     </div>

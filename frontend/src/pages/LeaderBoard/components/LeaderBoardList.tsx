@@ -32,12 +32,13 @@ export const LeaderBoardList: FC = () => {
   }
   return (
     <div className="flex flex-col gap-2">
-      {users.map((user) => (
+      {users.map((user, index) => (
         <LeaderBoardCard
           key={user.id}
           username={user.username}
           photoUrl={user.photoUrl}
           stats={user.stats}
+          position={index + 1}
         />
       ))}
     </div>

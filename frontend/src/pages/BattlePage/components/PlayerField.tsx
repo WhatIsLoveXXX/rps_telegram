@@ -10,12 +10,11 @@ export const PlayerField = () => {
 
   const handleClick = (card: CardType) => {
     if (gameOver) return;
-    console.log("selectedCard", card);
     selectSelfCard(card);
   };
 
   return (
-    <div className="">
+    <div>
       {gameStarted && (
         <div className="flex justify-center gap-4 mt-8">
           {cards.map((card) => (

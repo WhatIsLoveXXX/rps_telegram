@@ -132,10 +132,7 @@ export class GameService {
             await RoomService.changeCreatorIfNeeded(roomId, userId, client);
             const isRoomEmpty = await RoomService.isRoomEmpty(roomId, client);
 
-            //Don't delete
-            const mockedRoomId = '7be9fec6-e9b1-4764-910c-f4215e34e431';
-
-            if (isRoomEmpty && roomId !== mockedRoomId) {
+            if (isRoomEmpty) {
                 await RoomService.deleteRoom(roomId, client);
             }
 
@@ -166,10 +163,16 @@ export class GameService {
 
                         await this.processGameResult(io, gameWinner, roomId);
                     } else {
+                        //Duplication of code
                         gameState.players.delete(userId.toString());
-                        console.log('User ${userId} removed from gameState');
+                        console.log(`User ${userId} removed from gameState`);
                         io.in(roomId).emit(SocketAction.GAME_STATE, { players: [...gameState.players.values()] });
                     }
+                } else {
+                    //Duplication of code
+                    gameState.players.delete(userId.toString());
+                    console.log(`User ${userId} removed from gameState`);
+                    io.in(roomId).emit(SocketAction.GAME_STATE, { players: [...gameState.players.values()] });
                 }
             }
             if (isRoomEmpty) {
