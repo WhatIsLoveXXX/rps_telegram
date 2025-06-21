@@ -24,7 +24,15 @@ export class UserService {
 
     static async getUserById(id: number, withStats = false, client: Queryable = db): Promise<User | null> {
         try {
-            const query = 'SELECT * FROM users WHERE id = $1';
+            const query = `
+                SELECT
+                    u.id, u.username, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
+                    ${withStats ? ', s.wins, s.losses, s.draws, s.profit' : ''}
+                FROM users u
+                    ${withStats ? 'LEFT JOIN user_stats s ON u.id = s.user_id' : ''}
+                WHERE u.id = $1
+            `;
+
             const res = await client.query(query, [id]);
             const row = res.rows[0];
             if (!row) return null;
@@ -32,7 +40,17 @@ export class UserService {
             const user = User.fromRow(row);
 
             if (withStats) {
-                user.stats = await UserStatsService.getUserStats(id, client);
+                const wins = row.wins ?? 0;
+                const losses = row.losses ?? 0;
+                const draws = row.draws ?? 0;
+
+                user.stats = {
+                    wins,
+                    losses,
+                    draws,
+                    profit: Number(row.profit ?? 0),
+                    gamesCount: wins + losses + draws,
+                };
             }
 
             return user;

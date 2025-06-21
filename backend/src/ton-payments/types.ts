@@ -111,6 +111,7 @@ export type TonTransaction = {
             body: string;
             decoded: {
                 comment: string;
+                type: string;
             };
         };
         init_state: {

@@ -1,30 +1,20 @@
 import { mnemonicToWalletKey } from '@ton/crypto';
-import { Cell, comment, internal, OpenedContract, SendMode, toNano, TonClient, WalletContractV4 } from '@ton/ton';
+import { Cell, OpenedContract, toNano, WalletContractV4, WalletContractV5R1 } from '@ton/ton';
 import dotenv from 'dotenv';
 import { CustomerNotEnoughFunds, TransactionNotFoundError } from '../../constants/errors';
 import { TonTransaction, TonTransactionsResponse } from '../types';
+import { createWalletAdapter } from '../adapter/walletAdapter';
 
 dotenv.config();
 
-const SECRET_WALLET_WORDS = process.env.SECRET_WALLET_WORDS || '';
 const TON_API_KEY = process.env.TON_API_KEY || '';
-const TON_API_ENDPOINT = process.env.TON_API_ENDPOINT || '';
+const SECRET_WALLET_WORDS = process.env.SECRET_WALLET_WORDS || '';
 const TON_API_V3_ENDPOINT = 'https://toncenter.com/api/v3';
-
-const client = new TonClient({
-    endpoint: TON_API_ENDPOINT,
-    apiKey: TON_API_KEY,
-});
 
 const maxRetries = 5;
 const delayMs = 4000;
 
-async function waitForSeqnoChange(
-    contract: OpenedContract<WalletContractV4>,
-    oldSeqno: number,
-    timeout = 180_000,
-    interval = 3_000
-): Promise<void> {
+async function waitForSeqnoChange(contract: OpenedContract<any>, oldSeqno: number, timeout = 180_000, interval = 3_000): Promise<void> {
     console.log('⏳ Waiting for transaction confirmation...');
 
     const start = Date.now();
@@ -55,34 +45,31 @@ function sleep(ms: number): Promise<void> {
 export async function sendTon(receiverAddress: string, amount: number) {
     const mnemonic = SECRET_WALLET_WORDS.split(' ');
     const { publicKey, secretKey } = await mnemonicToWalletKey(mnemonic);
-    const wallet = WalletContractV4.create({ workchain: 0, publicKey });
+    const contract = createWalletAdapter(publicKey);
     const amountNano = toNano(amount);
 
-    const contract = client.open(wallet);
-    const [seqNo, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
+    const [seqno, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
 
     if (balance < amountNano) {
         throw new CustomerNotEnoughFunds();
     }
 
     const transfer = contract.createTransfer({
-        seqno: seqNo,
+        seqno,
         secretKey,
-        messages: [internal({ to: receiverAddress, value: amountNano, body: comment('💸 From API') })],
-        sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS,
+        amountNano,
+        receiver: receiverAddress,
     });
 
     const messageHash = Cell.fromBoc(transfer.toBoc())[0].hash().toString('base64');
 
     await contract.send(transfer);
-
     console.log('📤 Transaction sent. Waiting for confirmation...');
 
-    await waitForSeqnoChange(contract, seqNo);
-
+    await waitForSeqnoChange(contract.contract, seqno);
     console.log('✅ Transaction confirmed. Receiving details...');
 
-    const { transaction, isSuccess } = await getTransactionByMessageHash(contract.address.toString(), messageHash);
+    const { transaction, isSuccess } = await getTransactionByMessageHash(contract.contract.address.toString(), messageHash);
     return { transaction, isSuccess, messageHash };
 }
 

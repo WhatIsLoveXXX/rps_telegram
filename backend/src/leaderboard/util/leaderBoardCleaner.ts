@@ -1,11 +1,11 @@
 import cron from 'node-cron';
-import { GameHistoryService } from '../../game/service/gameHistoryService';
+import { SeasonService } from '../../game/service/SeasonService';
 
 class LeaderBoardCleaner {
     static start() {
         cron.schedule('0 0 1 * *', async () => {
             console.log('[CRON] Cleaning game history...');
-            await GameHistoryService.deleteGameHistory();
+            await SeasonService.archiveTopUsersAndClearHistory();
         });
     }
 }

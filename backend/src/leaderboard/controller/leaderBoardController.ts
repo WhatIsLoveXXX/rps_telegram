@@ -5,7 +5,7 @@ import { InternalServiceError, LeaderBoardError } from '../../constants/errors';
 export class LeaderboardController {
     static async getLeaderboard(req: Request, res: Response) {
         try {
-            const players = await GameHistoryService.getTopUsersForCurrentMonth();
+            const players = await GameHistoryService.getTopUsersForCurrentSeason();
             return res.json(players);
         } catch (err) {
             if (err instanceof LeaderBoardError) {
