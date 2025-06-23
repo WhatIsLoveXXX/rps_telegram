@@ -42,6 +42,7 @@ export type TonTransaction = {
         };
         destroyed: boolean;
         compute_ph: {
+            skipped: boolean;
             mode: number;
             type: 'vm';
             success: boolean;

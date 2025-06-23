@@ -70,7 +70,34 @@ export async function sendTon(receiverAddress: string, amount: number) {
     console.log('✅ Transaction confirmed. Receiving details...');
 
     const { transaction, isSuccess } = await getTransactionByMessageHash(contract.contract.address.toString(), messageHash);
-    return { transaction, isSuccess, messageHash };
+
+    const bounced = transaction ? await wasBouncedFromSender(receiverAddress, transaction) : false;
+
+    return { transaction, isSuccess, messageHash, bounced };
+}
+
+export async function wasBouncedFromSender(receiverAddress: string, originalTx: TonTransaction): Promise<boolean> {
+    const outHash = originalTx.out_msgs?.[0]?.hash;
+    if (!outHash) return false;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        const txs = await getTransactions(receiverAddress, 10);
+
+        const found = txs.find(
+            (tx) => tx.in_msg && tx.in_msg.hash === outHash && (tx.description.aborted || tx.description.compute_ph?.skipped)
+        );
+
+        if (found) {
+            console.log('Bounce found at sender side');
+            return true;
+        }
+
+        console.log('Not found bouncing on attemt:' + attempt);
+
+        await sleep(delayMs);
+    }
+
+    return false;
 }
 
 export async function getTransactionByMessageHash(senderAddress: string, desiredMessageHash: string) {

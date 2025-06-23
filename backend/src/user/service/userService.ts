@@ -22,16 +22,22 @@ export class UserService {
         return result.rows[0].count > 0;
     }
 
-    static async getUserById(id: number, withStats = false, client: Queryable = db): Promise<User | null> {
+    static async getUserById(id: number, withStats = false, client: Queryable = db, forUpdate = false): Promise<User | null> {
         try {
+            const statsFields = withStats ? ', s.wins, s.losses, s.draws, s.profit' : '';
+            const joinStats = withStats ? 'LEFT JOIN user_stats s ON u.id = s.user_id' : '';
+
+            const forUpdateClause = forUpdate ? 'FOR UPDATE' : '';
+
             const query = `
-                SELECT
-                    u.id, u.username, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
-                    ${withStats ? ', s.wins, s.losses, s.draws, s.profit' : ''}
-                FROM users u
-                    ${withStats ? 'LEFT JOIN user_stats s ON u.id = s.user_id' : ''}
-                WHERE u.id = $1
-            `;
+            SELECT
+                u.id, u.username, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
+                ${statsFields}
+            FROM users u
+                ${joinStats}
+            WHERE u.id = $1
+            ${forUpdateClause}
+        `;
 
             const res = await client.query(query, [id]);
             const row = res.rows[0];
@@ -73,7 +79,7 @@ export class UserService {
         try {
             await client.query('BEGIN');
 
-            const user = await UserService.getUserById(userId, false, client);
+            const user = await UserService.getUserById(userId, false, client, true);
 
             if (!user) {
                 throw new UserNotFoundError();
@@ -122,16 +128,16 @@ export class UserService {
         try {
             await client.query('BEGIN');
 
-            const userResult = await UserService.getUserById(userId, false, client);
-            if (!userResult) {
+            const user = await UserService.getUserById(userId, false, client, true);
+            if (!user) {
                 throw new UserNotFoundError();
             }
 
-            if (userResult.balance < amount) {
+            if (user.balance < amount) {
                 throw new InsufficientBalanceError();
             }
 
-            const { transaction, isSuccess, messageHash: hash } = await sendTon(receiverAddress, amount);
+            const { transaction, isSuccess, messageHash: hash, bounced } = await sendTon(receiverAddress, amount);
             messageHash = hash;
 
             if (transaction === null) {
@@ -139,7 +145,11 @@ export class UserService {
                 throw new TransactionNotFoundError();
             }
             const txHash = Buffer.from(transaction.hash, 'base64').toString('hex');
-            const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
+            const transactionStatus = bounced
+                ? TransactionStatus.REJECTED
+                : isSuccess
+                  ? TransactionStatus.CREATED
+                  : TransactionStatus.REJECTED;
 
             const updatedUser = BalanceService.deductBalance(userId, amount, client);
 

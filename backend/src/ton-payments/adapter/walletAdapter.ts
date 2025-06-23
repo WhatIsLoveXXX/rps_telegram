@@ -46,7 +46,6 @@ class WalletAdapterV4 implements WalletAdapter {
         receiver: string;
         commentText?: string;
     }): Cell {
-        console.log('Создали в 4 версии!');
         return this.contract.createTransfer({
             seqno: seqno,
             secretKey,
@@ -96,7 +95,6 @@ class WalletAdapterV5 implements WalletAdapter {
         receiver: string;
         commentText?: string;
     }): Cell {
-        console.log('Создали в 5 версии!');
         return this.contract.createTransfer({
             seqno,
             secretKey,
