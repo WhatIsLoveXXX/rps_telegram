@@ -49,8 +49,7 @@ export async function sendTon(receiverAddress: string, amount: number) {
     const amountNano = toNano(amount);
 
     const [seqno, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
-    console.log('💰 Balance:', balance);
-    console.log('💰 Amount:', amountNano);
+
     if (balance < amountNano) {
         throw new CustomerNotEnoughFunds();
     }
