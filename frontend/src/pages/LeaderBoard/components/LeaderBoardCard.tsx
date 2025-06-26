@@ -23,7 +23,7 @@ const LeaderBoardCard = ({
 }: LeaderBoardCardProps) => {
   const isTopThree = position !== undefined && position <= 3;
   const backgroundClass = isTopThree
-    ? "leader-bord-card-gradient"
+    ? `leader-bord-${position}-place-gradient`
     : "bg-[#181818] border border-[#313030]";
 
   return (

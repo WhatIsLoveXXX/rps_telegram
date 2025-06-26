@@ -37,7 +37,7 @@ export const SelfInfo = () => {
         <button
           onClick={handleReady}
           className={clsx(
-            "px-6  text-white font-medium text-sm py-2 rounded-lg transition absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2",
+            "px-6 w-[200px] h-[46px]  text-white font-medium text-sm py-2 rounded-lg transition absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2",
             self.isReady
               ? "bg-[#1B73DD]/60"
               : "bg-[#1B73DD] hover:bg-[#1B73DD]/80"

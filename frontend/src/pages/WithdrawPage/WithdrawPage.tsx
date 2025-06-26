@@ -8,9 +8,10 @@ import { NumberInput } from "@/components/Input/NumberInput";
 import { toast } from "react-toastify";
 import { withdrawBalance } from "../../../services/balance.api";
 import { Button } from "@/components/Button/Button";
+import { LoaderCircle } from "lucide-react";
 
 export const WithdrawPage = () => {
-  const { user, isLoading } = useUser();
+  const { user, isLoading, fetchUser } = useUser();
   const userFriendlyAddress = useTonAddress();
   const [withdrawAmount, setWithdrawAmount] = useState<number | undefined>(
     undefined
@@ -31,6 +32,7 @@ export const WithdrawPage = () => {
     try {
       setIsCashOutLoading(true);
       await withdrawBalance(withdrawAmount, userFriendlyAddress);
+      await fetchUser(user?.id);
       toast.success("Withdrawal successful");
     } catch (error: any) {
       toast.error(error);
@@ -38,7 +40,7 @@ export const WithdrawPage = () => {
       setIsCashOutLoading(false);
     }
   };
-  console.log(withdrawAmount);
+
   return (
     <Page back={false}>
       {isLoading ? (
@@ -77,7 +79,11 @@ export const WithdrawPage = () => {
                   disabled={isCashOutLoading || !withdrawAmount}
                   onClick={onWithdraw}
                 >
-                  Cash out
+                  {isCashOutLoading ? (
+                    <LoaderCircle className="w-4 h-4 animate-spin text-white" />
+                  ) : (
+                    "Cash out"
+                  )}
                 </Button>
               </div>
             </div>

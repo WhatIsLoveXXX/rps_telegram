@@ -1,31 +1,16 @@
-import { useEffect, useState } from "react";
-import { IUser } from "../../services/users.types";
-import { getUser } from "../../services/users.api";
+import { useEffect } from "react";
 import { useTelegramUser } from "./useTelegramUser";
-import { toast } from "react-toastify";
+import { useUserStore } from "../store/useUserStore";
 
 export const useUser = () => {
-  const user = useTelegramUser();
-
-  const [userInfo, setUserInfo] = useState<IUser | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const telegramUser = useTelegramUser();
+  const { user, isLoading, fetchUser } = useUserStore();
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!telegramUser?.id) return;
 
-    const fetchUser = async () => {
-      try {
-        const data = await getUser(user?.id);
-        setUserInfo(data);
-      } catch (error: any) {
-        toast.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchUser(telegramUser.id);
+  }, [telegramUser, fetchUser]);
 
-    fetchUser();
-  }, [user]);
-
-  return { user: userInfo, isLoading };
+  return { user, isLoading, fetchUser };
 };
