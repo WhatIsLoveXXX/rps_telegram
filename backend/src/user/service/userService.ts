@@ -84,7 +84,7 @@ export class UserService {
                 throw new UserNotFoundError();
             }
 
-            const { transaction, isSuccess, bounced, spent } = await receiveTon(senderAddress, boc);
+            const { transaction, isSuccess, bounced } = await receiveTon(senderAddress, boc);
             if (transaction === null) {
                 shouldInsertPending = true;
                 throw new TransactionNotFoundError();
@@ -96,9 +96,9 @@ export class UserService {
                   ? TransactionStatus.CREATED
                   : TransactionStatus.REJECTED;
 
-            const updatedUser = isSuccess ? await BalanceService.addBalance(userId, spent || amount, client) : null;
+            const updatedUser = isSuccess ? await BalanceService.addBalance(userId, amount, client) : null;
 
-            await TransactionService.createTransaction(userId, spent || amount, TransactionType.DEPOSIT, txHash, transactionStatus, client);
+            await TransactionService.createTransaction(userId, amount, TransactionType.DEPOSIT, txHash, transactionStatus, client);
 
             await client.query('COMMIT');
             return updatedUser;
@@ -142,14 +142,7 @@ export class UserService {
                 throw new InsufficientBalanceError();
             }
 
-            const {
-                transaction,
-                isSuccess,
-                messageHash: hash,
-                bounced,
-                spent,
-                bouncedCommissionTon,
-            } = await sendTon(receiverAddress, amount);
+            const { transaction, isSuccess, messageHash: hash, bounced, bouncedCommissionTon } = await sendTon(receiverAddress, amount);
 
             messageHash = hash;
             isBounced = bounced;
@@ -166,16 +159,9 @@ export class UserService {
             const txHash = Buffer.from(transaction.hash, 'base64').toString('hex');
             const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
-            const updatedUser = BalanceService.deductBalance(userId, spent || amount, client);
+            const updatedUser = BalanceService.deductBalance(userId, amount, client);
 
-            await TransactionService.createTransaction(
-                userId,
-                spent || amount,
-                TransactionType.WITHDRAW,
-                txHash,
-                transactionStatus,
-                client
-            );
+            await TransactionService.createTransaction(userId, amount, TransactionType.WITHDRAW, txHash, transactionStatus, client);
 
             await client.query('COMMIT');
             return updatedUser;

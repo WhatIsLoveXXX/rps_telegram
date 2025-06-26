@@ -23,14 +23,15 @@ export async function sendTon(receiverAddress: string, amount: number) {
 
     const [seqno, balance] = await Promise.all([contract.getSeqno(), contract.getBalance()]);
 
+    const reserveBuffer = toNano(0.000005);
     const estimatedFee = await contract.estimateFee({
         seqno,
         amountNano,
         receiver: receiverAddress,
     });
 
-    const amountToSend = amountNano - estimatedFee;
-    const totalCost = amountNano + estimatedFee;
+    const amountToSend = amountNano - estimatedFee - reserveBuffer;
+    const totalCost = amountNano + estimatedFee + reserveBuffer;
 
     if (balance < totalCost) {
         throw new CustomerNotEnoughFunds(`Not enough TON: need ${Number(totalCost) / 1e9}, have ${Number(balance) / 1e9}`);
@@ -65,12 +66,10 @@ export async function sendTon(receiverAddress: string, amount: number) {
 export async function receiveTon(receiverAddress: string, boc: string) {
     const { transaction, isSuccess } = await findTransactionByHashWithWait(receiverAddress, boc);
 
-    const spent = getRealSpentFromTransaction(transaction);
-
     // const bounced = transaction ? await wasBouncedFromSender(receiverAddress, transaction) : false; // If customer's wallet inactive, was checking for bounced of this transaction
     const bounced = false;
 
-    return { transaction, isSuccess, bounced, spent };
+    return { transaction, isSuccess, bounced };
 }
 
 async function waitForSeqnoChange(contract: OpenedContract<any>, oldSeqno: number, timeout = 180_000, interval = 3_000): Promise<void> {
