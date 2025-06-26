@@ -5,32 +5,41 @@ import { GameResult } from '../gameResult';
 import { GameHistoryError, LeaderBoardError } from '../../constants/errors';
 
 export class GameHistoryService {
-    static async getTopUsersForCurrentSeason(limit: number = 50, client: Queryable = db): Promise<User[]> {
+    static async getTopUsersForCurrentSeason(userId?: number, limit: number = 50, client: Queryable = db) {
         try {
             const query = `
-                SELECT u.id,
-                       u.username,
-                       u.first_name,
-                       u.last_name,
-                       u.photo_url,
-                       u.balance,
-                       u.wallet,
-                       COUNT(*) FILTER (WHERE gh.result = 1) AS wins,
-                        COUNT(*) FILTER (WHERE gh.result = 0) AS losses,
-                        COUNT(*) FILTER (WHERE gh.result = 3) AS draws,
-                        COALESCE(SUM(CASE WHEN gh.result = 1 THEN gh.bet ELSE 0 END), 0)
-                            - COALESCE(SUM(CASE WHEN gh.result = 0 THEN gh.bet ELSE 0 END), 0) AS profit
-                FROM users u
-                         JOIN game_history gh ON u.id = gh.user_id
-                GROUP BY u.id, u.username, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
-                ORDER BY profit DESC
-                    LIMIT $1;
+                WITH ranked_users AS (
+                    SELECT u.id,
+                           u.username,
+                           u.first_name,
+                           u.last_name,
+                           u.photo_url,
+                           u.balance,
+                           u.wallet,
+                           COUNT(*) FILTER (WHERE gh.result = 1) AS wins,
+                            COUNT(*) FILTER (WHERE gh.result = 0) AS losses,
+                            COUNT(*) FILTER (WHERE gh.result = 3) AS draws,
+                            COALESCE(SUM(CASE WHEN gh.result = 1 THEN gh.bet ELSE 0 END), 0)
+                                - COALESCE(SUM(CASE WHEN gh.result = 0 THEN gh.bet ELSE 0 END), 0) AS profit,
+                           RANK() OVER (ORDER BY 
+                           COALESCE(SUM(CASE WHEN gh.result = 1 THEN gh.bet ELSE 0 END), 0)
+                         - COALESCE(SUM(CASE WHEN gh.result = 0 THEN gh.bet ELSE 0 END), 0) DESC
+                       ) AS rank
+                    FROM users u
+                             JOIN game_history gh ON u.id = gh.user_id
+                    GROUP BY u.id, u.username, u.first_name, u.last_name, u.photo_url, u.balance, u.wallet
+                )
+                SELECT *
+                FROM ranked_users
+                WHERE rank <= $1
+                    ${userId != null ? 'OR id = $2' : ''}
             `;
 
-            const result = await client.query(query, [limit]);
+            const params = userId != null ? [limit, userId] : [limit];
+            const result = await client.query(query, params);
             return result.rows.map(User.fromRow);
         } catch (err) {
-            console.error('Error in getTopUsersForCurrentMonth:', err);
+            console.error('Error in getTopUsersAndRankForUser:', err);
             throw new LeaderBoardError();
         }
     }

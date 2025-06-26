@@ -9,7 +9,7 @@ export class SeasonService {
 
             const seasonNumber = await this.getNextSeasonNumber(client);
 
-            const topUsers = await GameHistoryService.getTopUsersForCurrentSeason(3, client);
+            const topUsers = await GameHistoryService.getTopUsersForCurrentSeason(undefined, 3, client);
 
             for (const user of topUsers) {
                 await client.query(

@@ -1,11 +1,10 @@
 import db from '../../config/db';
 import { User } from '../model/user';
-import { findTransactionByHashWithWait, sendTon } from '../../ton-payments/util/TonSenderReceiver';
+import { receiveTon, sendTon } from '../../ton-payments/util/TonSenderReceiver';
 import { TransactionService } from '../../ton-payments/transactionService';
 import { Queryable } from '../../config/types';
-import { UserStatsService } from './userStatsService';
 import { BalanceService } from './balanceService';
-import { InsufficientBalanceError, TransactionNotFoundError, UserNotFoundError } from '../../constants/errors';
+import { InsufficientBalanceError, TransactionBouncedError, TransactionNotFoundError, UserNotFoundError } from '../../constants/errors';
 import { TransactionStatus, TransactionType } from '../../ton-payments/types';
 
 export class UserService {
@@ -85,17 +84,21 @@ export class UserService {
                 throw new UserNotFoundError();
             }
 
-            const { transaction, isSuccess } = await findTransactionByHashWithWait(senderAddress, boc);
+            const { transaction, isSuccess, bounced, spent } = await receiveTon(senderAddress, boc);
             if (transaction === null) {
                 shouldInsertPending = true;
                 throw new TransactionNotFoundError();
             }
             const txHash = Buffer.from(transaction.hash, 'base64').toString('hex');
-            const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
+            const transactionStatus = bounced
+                ? TransactionStatus.REJECTED
+                : isSuccess
+                  ? TransactionStatus.CREATED
+                  : TransactionStatus.REJECTED;
 
-            const updatedUser = isSuccess ? await BalanceService.addBalance(userId, amount, client) : null;
+            const updatedUser = isSuccess ? await BalanceService.addBalance(userId, spent || amount, client) : null;
 
-            await TransactionService.createTransaction(userId, amount, TransactionType.DEPOSIT, txHash, transactionStatus, client);
+            await TransactionService.createTransaction(userId, spent || amount, TransactionType.DEPOSIT, txHash, transactionStatus, client);
 
             await client.query('COMMIT');
             return updatedUser;
@@ -124,6 +127,8 @@ export class UserService {
         const client = await db.connect();
         let shouldInsertPending = false;
         let messageHash: string | null = null;
+        let isBounced = false;
+        let bouncedCommission = 0;
 
         try {
             await client.query('BEGIN');
@@ -137,23 +142,40 @@ export class UserService {
                 throw new InsufficientBalanceError();
             }
 
-            const { transaction, isSuccess, messageHash: hash, bounced } = await sendTon(receiverAddress, amount);
+            const {
+                transaction,
+                isSuccess,
+                messageHash: hash,
+                bounced,
+                spent,
+                bouncedCommissionTon,
+            } = await sendTon(receiverAddress, amount);
+
             messageHash = hash;
+            isBounced = bounced;
+            bouncedCommission = bouncedCommissionTon;
 
             if (transaction === null) {
                 shouldInsertPending = true;
                 throw new TransactionNotFoundError();
             }
+            if (bounced) {
+                throw new TransactionBouncedError();
+            }
+
             const txHash = Buffer.from(transaction.hash, 'base64').toString('hex');
-            const transactionStatus = bounced
-                ? TransactionStatus.REJECTED
-                : isSuccess
-                  ? TransactionStatus.CREATED
-                  : TransactionStatus.REJECTED;
+            const transactionStatus = isSuccess ? TransactionStatus.CREATED : TransactionStatus.REJECTED;
 
-            const updatedUser = BalanceService.deductBalance(userId, amount, client);
+            const updatedUser = BalanceService.deductBalance(userId, spent || amount, client);
 
-            await TransactionService.createTransaction(userId, amount, TransactionType.WITHDRAW, txHash, transactionStatus, client);
+            await TransactionService.createTransaction(
+                userId,
+                spent || amount,
+                TransactionType.WITHDRAW,
+                txHash,
+                transactionStatus,
+                client
+            );
 
             await client.query('COMMIT');
             return updatedUser;
@@ -161,6 +183,13 @@ export class UserService {
             await client.query('ROLLBACK');
             console.error(err);
 
+            if (isBounced) {
+                try {
+                    await BalanceService.deductBalance(userId, bouncedCommission, client);
+                } catch (balanceErr) {
+                    console.error('Failed to insert pending withdrawal:', balanceErr);
+                }
+            }
             if (shouldInsertPending && messageHash) {
                 try {
                     await client.query(

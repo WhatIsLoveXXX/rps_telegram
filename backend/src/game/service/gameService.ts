@@ -16,6 +16,8 @@ export class GameService {
 
     private static games = new Map<string, GameState>();
 
+    private static readonly INNER_GAME_TAX = Number(process.env.INNER_GAME_TAX) || 0.1;
+
     static async connectUser(io: Server, socket: Socket, roomId: string, userId: number): Promise<void> {
         const client = await db.connect();
         try {
@@ -357,22 +359,24 @@ export class GameService {
     private static async processWinnerAndLoser(winnerId: number, players: any[], betAmount: number, client: any): Promise<void> {
         const loser = players.find((player) => player.id !== winnerId);
         const winner = players.find((player) => player.id === winnerId);
+        const betAmountWithoutTaxes = betAmount * this.INNER_GAME_TAX;
 
         await BalanceService.deductBalance(loser.id, betAmount, client);
-        await BalanceService.addBalance(winnerId, betAmount, client);
+        await BalanceService.addBalance(winnerId, betAmountWithoutTaxes, client);
 
-        await GameHistoryService.saveGameHistory(winnerId, betAmount, GameResult.WIN, client);
+        await GameHistoryService.saveGameHistory(winnerId, betAmountWithoutTaxes, GameResult.WIN, client);
         await GameHistoryService.saveGameHistory(loser.id, betAmount, GameResult.LOSE, client);
-        winner.stats = await UserStatsService.updateUserStats(winnerId, betAmount, GameResult.WIN, client);
+        winner.stats = await UserStatsService.updateUserStats(winnerId, betAmountWithoutTaxes, GameResult.WIN, client);
         loser.stats = await UserStatsService.updateUserStats(loser.id, betAmount, GameResult.LOSE, client);
     }
 
     private static updateInStateBalances(winnerId: number, players: any[], betAmount: number): void {
         const loser = players.find((player) => player.id !== winnerId);
         const winner = players.find((player) => player.id === winnerId);
+        const betAmountWithoutTaxes = betAmount * this.INNER_GAME_TAX;
 
         loser.balance -= betAmount;
-        winner.balance += betAmount;
+        winner.balance += betAmountWithoutTaxes;
 
         console.log(`Updated in-memory balances. Winner: ${winnerId}, Loser: ${loser.id}`);
     }

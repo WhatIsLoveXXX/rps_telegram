@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { UserService } from '../service/userService';
-import { InsufficientBalanceError, UserNotFoundError } from '../../constants/errors';
+import { InsufficientBalanceError, TransactionBouncedError, TransactionNotFoundError, UserNotFoundError } from '../../constants/errors';
 
 /**
  * Controller handling user-related operations such as authorization, wallet updates,
@@ -134,6 +134,14 @@ export class UserController {
             }
 
             if (err instanceof InsufficientBalanceError) {
+                return res.status(400).json({ error: err.message });
+            }
+
+            if (err instanceof TransactionNotFoundError) {
+                return res.status(400).json({ error: err.message });
+            }
+
+            if (err instanceof TransactionBouncedError) {
                 return res.status(400).json({ error: err.message });
             }
 

@@ -36,6 +36,7 @@ export class User {
                       losses: Number(row.losses),
                       draws: Number(row.draws),
                       profit: row.profit !== undefined ? Number(row.profit) : undefined,
+                      rank: row.rank !== undefined ? Number(row.rank) : undefined,
                   }
                 : null;
 
@@ -49,4 +50,5 @@ export type UserStats = {
     draws: number;
     profit?: number;
     gamesCount?: number;
+    rank?: number;
 };

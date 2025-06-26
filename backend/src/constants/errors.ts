@@ -47,6 +47,13 @@ export class TransactionNotFoundError extends Error {
     }
 }
 
+export class TransactionBouncedError extends Error {
+    constructor(message = 'Transaction was bounced') {
+        super(message);
+        this.name = 'TransactionBouncedError';
+    }
+}
+
 export class CustomerNotEnoughFunds extends Error {
     constructor(message = 'There was an error with the withdraw, please contact the administrator') {
         super(message);
