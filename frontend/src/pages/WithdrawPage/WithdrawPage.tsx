@@ -44,7 +44,9 @@ export const WithdrawPage = () => {
   return (
     <Page back={false}>
       {isLoading ? (
-        <div>Loading...</div>
+        <div className="flex justify-center items-center h-screen">
+          <LoaderCircle className="animate-spin h-10 w-10 text-white" />
+        </div>
       ) : (
         <>
           <h2 className="text-base font-semibold text-center mb-3 text-white">
@@ -58,22 +60,24 @@ export const WithdrawPage = () => {
               TON <span className="text-[#1B73DD]">{user?.balance}</span>
             </p>
             <div className="mt-5">
-              <p className="text-[#AF0808] text-[10px] mb-1">
-                Please note, a 5% fee is charged for withdrawal of funds
-              </p>
               <Input
                 value={userFriendlyAddress}
                 onChange={() => {}}
                 placeholder="Enter your wallet address"
                 readOnly={true}
-                className="!text-[11px]"
+                className="!text-[11px] mb-2"
               />
               <NumberInput
                 value={withdrawAmount}
                 onChange={(value) => setWithdrawAmount(value)}
                 placeholder="Enter amount"
-                className="!w-[156px]"
+                className="!w-[156px] mb-2"
               />
+              <p className="text-[#CBCBCB] text-[10px] mb-4">
+                <span className="font-semibold">Please note!</span> When
+                replenishing or withdrawing funds, we charge a{" "}
+                <span className="font-semibold">commission of 2.5-5%</span>
+              </p>
               <div className="flex justify-center">
                 <Button
                   disabled={isCashOutLoading || !withdrawAmount}

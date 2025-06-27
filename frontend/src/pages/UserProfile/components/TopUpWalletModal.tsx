@@ -70,7 +70,7 @@ export const TopUpWalletModal: FC<TopUpWalletModalProps> = ({
           value={topUpAmount}
           onChange={(value) => setTopUpAmount(value)}
           placeholder="TON"
-          className="max-w-[92px]"
+          className="max-w-[92px] mb-4"
         />
 
         <div className="relative w-full flex justify-center">

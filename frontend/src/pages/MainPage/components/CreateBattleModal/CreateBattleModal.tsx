@@ -51,7 +51,7 @@ export const CreateBattleModal: FC<CreateBattleModalProps> = ({
           value={sumTON}
           onChange={(value) => setSumTON(value)}
           placeholder="TON"
-          className="max-w-[92px]"
+          className="max-w-[92px] mb-4"
           max={MAX_BET}
           min={MIN_BET}
         />

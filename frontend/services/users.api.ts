@@ -28,9 +28,11 @@ export const updateWallet = async (walletAddress: string) => {
   }
 };
 
-export const getLeaderBoard = async () => {
+export const getLeaderBoard = async (limit: number, userId: number) => {
   try {
-    const response = await api.get<IUser[]>(`/leaderboard`);
+    const response = await api.get<IUser[]>(
+      `/leaderboard?limit=${limit}&userId=${userId}`
+    );
     return response.data;
   } catch (error: any) {
     throw error.response.data.message;

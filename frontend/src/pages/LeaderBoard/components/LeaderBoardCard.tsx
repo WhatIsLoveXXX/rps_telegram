@@ -1,6 +1,7 @@
 import WinIcon from "@/assets/icons/win-icon.svg?react";
 import LossIcon from "@/assets/icons/lose-icon.svg?react";
 import DrawIcon from "@/assets/icons/draw-icon.svg?react";
+import clsx from "clsx";
 
 interface LeaderBoardCardProps {
   username: string;
@@ -13,6 +14,7 @@ interface LeaderBoardCardProps {
     gamesCount?: number;
   };
   position?: number;
+  isOutside?: boolean;
 }
 
 const LeaderBoardCard = ({
@@ -20,15 +22,20 @@ const LeaderBoardCard = ({
   photoUrl,
   stats,
   position,
+  isOutside = false,
 }: LeaderBoardCardProps) => {
   const isTopThree = position !== undefined && position <= 3;
-  const backgroundClass = isTopThree
+  const topThreeBgClasses = isTopThree
     ? `leader-bord-${position}-place-gradient`
     : "bg-[#181818] border border-[#313030]";
 
+  const backgroundClasses = isOutside
+    ? "bg-[#1B73DD] border border-[#313030]"
+    : topThreeBgClasses;
+
   return (
     <div
-      className={`flex items-center justify-between ${backgroundClass} rounded-lg p-2 pr-4 w-full shadow`}
+      className={`flex items-center justify-between ${backgroundClasses} rounded-lg p-2 pr-4 w-full shadow`}
     >
       <div className="flex items-center gap-2">
         <div className="text-white text-sm font-semibold">{position}</div>
@@ -43,23 +50,35 @@ const LeaderBoardCard = ({
           </div>
           <div className="text-[10px] flex gap-1">
             <div className="flex items-center gap-1">
-              <WinIcon />
+              <WinIcon className={clsx(isOutside && "stroke-white")} />
               <span className="text-white">{stats.wins}</span>
             </div>
             <div className="flex items-center gap-1">
-              <LossIcon />
+              <LossIcon className={clsx(isOutside && "stroke-white")} />
               <span className="text-white">{stats.losses}</span>
             </div>
             <div className="flex items-center gap-1">
-              <DrawIcon />
+              <DrawIcon className={clsx(isOutside && "fill-white")} />
               <span className="text-white">{stats.draws}</span>
             </div>
           </div>
         </div>
       </div>
       <div className="text-[10px] font-semibold text-center">
-        <div className="text-[#B4B9BE] mb-1">TON</div>
-        <div className="text-[#1B73DD] text-[12px]">
+        <div
+          className={clsx(
+            "text-[#B4B9BE] mb-1",
+            isOutside ? "text-white" : "text-[#B4B9BE]"
+          )}
+        >
+          TON
+        </div>
+        <div
+          className={clsx(
+            "text-[12px]",
+            isOutside ? "text-white" : "text-[#1B73DD]"
+          )}
+        >
           {stats.profit?.toLocaleString()}
         </div>
       </div>

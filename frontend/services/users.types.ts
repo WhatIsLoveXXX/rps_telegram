@@ -11,6 +11,7 @@ export interface IUser {
     profit?: number;
     wins: number;
     gamesCount?: number;
+    rank?: number;
   };
   wallet: null;
 }
