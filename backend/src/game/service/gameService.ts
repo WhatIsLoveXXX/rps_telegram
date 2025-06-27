@@ -16,7 +16,7 @@ export class GameService {
 
     private static games = new Map<string, GameState>();
 
-    private static readonly INNER_GAME_TAX = Number(process.env.INNER_GAME_TAX) || 0.1;
+    private static readonly PROFIT_NET_COEFFICIENT = 1 - (Number(process.env.INNER_GAME_TAX) || 0.1);
 
     static async connectUser(io: Server, socket: Socket, roomId: string, userId: number): Promise<void> {
         const client = await db.connect();
@@ -359,7 +359,7 @@ export class GameService {
     private static async processWinnerAndLoser(winnerId: number, players: any[], betAmount: number, client: any): Promise<void> {
         const loser = players.find((player) => player.id !== winnerId);
         const winner = players.find((player) => player.id === winnerId);
-        const betAmountWithoutTaxes = betAmount * this.INNER_GAME_TAX;
+        const betAmountWithoutTaxes = betAmount * this.PROFIT_NET_COEFFICIENT;
 
         await BalanceService.deductBalance(loser.id, betAmount, client);
         await BalanceService.addBalance(winnerId, betAmountWithoutTaxes, client);
@@ -373,7 +373,7 @@ export class GameService {
     private static updateInStateBalances(winnerId: number, players: any[], betAmount: number): void {
         const loser = players.find((player) => player.id !== winnerId);
         const winner = players.find((player) => player.id === winnerId);
-        const betAmountWithoutTaxes = betAmount * this.INNER_GAME_TAX;
+        const betAmountWithoutTaxes = betAmount * this.PROFIT_NET_COEFFICIENT;
 
         loser.balance -= betAmount;
         winner.balance += betAmountWithoutTaxes;

@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { CustomerNotEnoughFunds, TransactionNotFoundError } from '../../constants/errors';
 import { TonTransaction, TonTransactionsResponse } from '../types';
 import { createWalletAdapter } from '../adapter/walletAdapter';
-import * as process from 'node:process';
 
 dotenv.config();
 

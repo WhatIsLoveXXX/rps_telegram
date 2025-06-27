@@ -31,7 +31,9 @@ export const GameField = () => {
             Round {round} of 5
           </div>
           <div className="relative">
-            <div className="text-center text-md font-semibold">{timeLeft}</div>
+            <div className="text-center text-md font-semibold text-white">
+              {timeLeft}
+            </div>
             <TimeLeftLoader
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 animate-spin"
               style={{ animationDuration: "1.5s" }}
