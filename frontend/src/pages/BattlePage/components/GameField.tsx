@@ -3,7 +3,7 @@ import { PlayerField } from "./PlayerField";
 import { useGameStore } from "@/store/useGameStore";
 import gameBackground from "@/assets/game-background.svg";
 import clsx from "clsx";
-import { Loader } from "lucide-react";
+import TimeLeftLoader from "@/assets/time-left-loader.svg?react";
 
 export const GameField = () => {
   const { round, opponent, timeLeft, gameStarted } = useGameStore();
@@ -32,7 +32,10 @@ export const GameField = () => {
           </div>
           <div className="relative">
             <div className="text-center text-md font-semibold">{timeLeft}</div>
-            <Loader className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10  animate-spin" />
+            <TimeLeftLoader
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 animate-spin"
+              style={{ animationDuration: "1.5s" }}
+            />
           </div>
         </div>
       )}

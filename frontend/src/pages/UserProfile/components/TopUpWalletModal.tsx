@@ -8,6 +8,8 @@ import { topUpBalance } from "../../../../services/balance.api";
 import { prepareTransaction } from "@/utils/transactions/prepareTransaction";
 import { useTelegramUser } from "@/hooks/useTelegramUser";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import { useUserStore } from "@/store/useUserStore";
+import { LoaderCircle } from "lucide-react";
 
 interface TopUpWalletModalProps {
   isOpen: boolean;
@@ -22,8 +24,12 @@ export const TopUpWalletModal: FC<TopUpWalletModalProps> = ({
   const [tonConnectUI] = useTonConnectUI();
   const user = useTelegramUser();
   const userFriendlyAddress = useTonAddress();
+  const { fetchUser } = useUserStore();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleTopUp = async () => {
+    if (!user?.id) return;
+
     if (!tonConnectUI.connected) {
       await tonConnectUI.openModal();
       return;
@@ -39,17 +45,21 @@ export const TopUpWalletModal: FC<TopUpWalletModalProps> = ({
       user?.username || "No username provided"
     );
     try {
+      setIsLoading(true);
       const transactionStatus = await tonConnectUI.sendTransaction(transaction);
       await topUpBalance(
         topUpAmount,
         transactionStatus.boc,
         userFriendlyAddress
       );
+      await fetchUser(user?.id);
       onClose();
     } catch (e: any) {
       toast.error(e);
       onClose();
       console.log(e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -75,8 +85,12 @@ export const TopUpWalletModal: FC<TopUpWalletModalProps> = ({
 
         <div className="relative w-full flex justify-center">
           <ModalScissors className="absolute top-1/2 -translate-y-1/2 left-0" />
-          <Button onClick={handleTopUp} className="px-6">
-            Top up
+          <Button onClick={handleTopUp} className="px-6" disabled={isLoading}>
+            {isLoading ? (
+              <LoaderCircle className="animate-spin text-white" />
+            ) : (
+              "Top up"
+            )}
           </Button>
         </div>
       </div>

@@ -76,7 +76,7 @@ export const WithdrawPage = () => {
               <p className="text-[#CBCBCB] text-[10px] mb-4">
                 <span className="font-semibold">Please note!</span> When
                 replenishing or withdrawing funds, we charge a{" "}
-                <span className="font-semibold">commission of 2.5-5%</span>
+                <span className="font-semibold">commission of 2.5%</span>
               </p>
               <div className="flex justify-center">
                 <Button

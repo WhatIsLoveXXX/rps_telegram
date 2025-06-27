@@ -5,11 +5,13 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { LoaderCircle, RotateCcw } from "lucide-react";
 import { useRoomStore } from "@/store/useRoomStore";
+import { useUser } from "@/hooks/useUser";
 
 export const BattleList = () => {
   const navigate = useNavigate();
   const { isLoading, rooms, setRooms, setLoading, currentFilters } =
     useRoomStore();
+  const { user } = useUser();
 
   const fetchBattles = useCallback(async () => {
     setLoading(true);
@@ -39,7 +41,12 @@ export const BattleList = () => {
     fetchInitialBattles();
   }, [fetchInitialBattles]);
 
-  const handleBattleClick = (id: string) => {
+  const handleBattleClick = (id: string, betAmount: number) => {
+    if (Number(user?.balance) < betAmount) {
+      toast.error("Insufficient balance");
+      return;
+    }
+
     navigate(`/battle/${id}`);
   };
 
@@ -64,7 +71,7 @@ export const BattleList = () => {
             betAmount={betAmount}
             creatorPhotoUrl={creatorPhotoUrl}
             creatorUsername={creatorUsername}
-            onBattleClick={() => handleBattleClick(id)}
+            onBattleClick={() => handleBattleClick(id, betAmount)}
             currency="TON"
           />
         ))
