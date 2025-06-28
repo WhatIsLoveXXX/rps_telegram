@@ -48,6 +48,46 @@ export const UserProfile: FC = () => {
         </div>
       </div>
 
+      <div className="bg-[#191919] rounded-lg py-3 px-4 border border-[#313030] mb-3">
+        <div className="flex justify-between">
+          <div>
+            <h2 className="text-sm font-semibold mb-[6px] text-white">
+              Balance
+            </h2>
+            <p className="text-sm font-semibold text-[#B4B9BE]">
+              TON
+              <span className="ml-1 text-[#1B73DD] font-semibold">
+                {user?.balance.toLocaleString()}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex gap-2 self-end">
+            <Button
+              className="h-[30px]"
+              onClick={() => {
+                setIsTopUpModalOpen(true);
+              }}
+            >
+              Top up wallet
+            </Button>
+            <Button
+              className="h-[30px]"
+              onClick={async () => {
+                if (!tonConnectUI.connected) {
+                  await tonConnectUI.openModal();
+                  return;
+                }
+                navigate("/withdraw");
+              }}
+              variant="secondary"
+            >
+              Cash out
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-5 bg-[#191919] rounded-lg py-3 px-4 border border-[#313030]">
         <h2 className="text-sm font-semibold mb-[10px] text-white">
           Player statistic
@@ -88,46 +128,6 @@ export const UserProfile: FC = () => {
         <Button className="h-[30px]" onClick={() => {}}>
           Join community
         </Button>
-      </div>
-
-      <div className="bg-[#191919] rounded-lg py-3 px-4 border border-[#313030] mb-3">
-        <div className="flex justify-between">
-          <div>
-            <h2 className="text-sm font-semibold mb-[6px] text-white">
-              Balance
-            </h2>
-            <p className="text-sm font-semibold text-[#B4B9BE]">
-              TON
-              <span className="ml-1 text-[#1B73DD] font-semibold">
-                {user?.balance.toLocaleString()}
-              </span>
-            </p>
-          </div>
-
-          <div className="flex gap-2 self-end">
-            <Button
-              className="h-[30px]"
-              onClick={() => {
-                setIsTopUpModalOpen(true);
-              }}
-            >
-              Top up wallet
-            </Button>
-            <Button
-              className="h-[30px]"
-              onClick={async () => {
-                if (!tonConnectUI.connected) {
-                  await tonConnectUI.openModal();
-                  return;
-                }
-                navigate("/withdraw");
-              }}
-              variant="secondary"
-            >
-              Cash out
-            </Button>
-          </div>
-        </div>
       </div>
 
       <TopUpWalletModal
