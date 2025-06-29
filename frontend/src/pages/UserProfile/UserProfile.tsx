@@ -48,7 +48,7 @@ export const UserProfile: FC = () => {
         </div>
       </div>
 
-      <div className="bg-[#191919] rounded-lg py-3 px-4 border border-[#313030] mb-3">
+      <div className="bg-[#191919] rounded-lg py-3 px-4 border border-[#313030] mb-3 mt-3">
         <div className="flex justify-between">
           <div>
             <h2 className="text-sm font-semibold mb-[6px] text-white">
