@@ -37,9 +37,27 @@ export const BattleList = () => {
     }
   }, [setRooms, setLoading]);
 
+  const poolBattlesSilently = useCallback(async () => {
+    try {
+      const data = await getOpenRooms(
+        Object.keys(currentFilters).length > 0 ? currentFilters : undefined
+      );
+      setRooms(data);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  }, [setRooms, currentFilters]);
+
   useEffect(() => {
     fetchInitialBattles();
   }, [fetchInitialBattles]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      poolBattlesSilently();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [poolBattlesSilently]);
 
   const handleBattleClick = (id: string, betAmount: number) => {
     if (Number(user?.balance) < betAmount) {

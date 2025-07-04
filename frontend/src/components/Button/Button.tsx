@@ -30,13 +30,13 @@ export const Button: FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={clsx(
-        "px-3 py-2 rounded-lg transition font-medium cursor-pointer",
+        "px-3 py-2 rounded-lg transition font-medium cursor-pointer text-xs",
         buttonVariants[variant],
         className
       )}
       {...props}
     >
-      <p className="text-xs">{children}</p>
+      <p>{children}</p>
     </button>
   );
 };

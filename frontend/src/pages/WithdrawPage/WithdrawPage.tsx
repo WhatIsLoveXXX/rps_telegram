@@ -49,14 +49,14 @@ export const WithdrawPage = () => {
         </div>
       ) : (
         <>
-          <h2 className="text-base font-semibold text-center mb-3 text-white">
+          <h2 className=" font-semibold text-center mb-3 text-white text-xl">
             Cash out
           </h2>
           <div className="border border-[#313030] bg-[#191919]/40 px-4 py-2 rounded-lg">
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-lg font-semibold text-white">
               Current balance:
             </h3>
-            <p className="text-[#B4B9BE] text-[10px]">
+            <p className="text-[#B4B9BE] text-[16px]">
               TON <span className="text-[#1B73DD]">{user?.balance}</span>
             </p>
             <div className="mt-5">
@@ -65,15 +65,16 @@ export const WithdrawPage = () => {
                 onChange={() => {}}
                 placeholder="Enter your wallet address"
                 readOnly={true}
-                className="!text-[11px] mb-2"
+                className="!text-[14px] mb-2"
               />
               <NumberInput
                 value={withdrawAmount}
                 onChange={(value) => setWithdrawAmount(value)}
                 placeholder="Enter amount"
-                className="!w-[156px] mb-2"
+                className="!w-[156px] mb-2 !text-[15px]"
+                max={Number(user?.balance || 0)}
               />
-              <p className="text-[#CBCBCB] text-[10px] mb-4">
+              <p className="text-[#CBCBCB] text-[14px] mb-4">
                 <span className="font-semibold">Please note!</span> When
                 replenishing or withdrawing funds, we charge a{" "}
                 <span className="font-semibold">commission of 2.5%</span>
@@ -82,6 +83,7 @@ export const WithdrawPage = () => {
                 <Button
                   disabled={isCashOutLoading || !withdrawAmount}
                   onClick={onWithdraw}
+                  className="!text-[16px] w-[140px]"
                 >
                   {isCashOutLoading ? (
                     <LoaderCircle className="w-4 h-4 animate-spin text-white" />
